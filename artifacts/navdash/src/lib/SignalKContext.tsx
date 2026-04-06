@@ -15,9 +15,16 @@ export interface SKContextValue {
   connect: (cfg: SignalKConfig) => void;
   disconnect: () => void;
   nmeaLog?: string[];
+  putSK: (path: string, value: unknown) => Promise<void>;
+  sendNMEA: (sentence: string) => void;
 }
 
 const SignalKContext = createContext<SKContextValue | null>(null);
+
+function buildSKUrl(config: SignalKConfig, path: string): string {
+  const scheme = config.useTLS ? "https" : "http";
+  return `${scheme}://${config.host}:${config.port}/signalk/v1/api/vessels/self/${path}`;
+}
 
 function SignalKModeProvider({ config, updateConfig, children }: {
   config: SignalKConfig;
@@ -25,6 +32,17 @@ function SignalKModeProvider({ config, updateConfig, children }: {
   children: ReactNode;
 }) {
   const sk = useSignalK(config);
+
+  const putSK = useCallback(async (path: string, value: unknown) => {
+    const url = buildSKUrl(config, path);
+    const resp = await fetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ value }),
+    });
+    if (!resp.ok) throw new Error(`Signal K PUT failed: ${resp.status} ${resp.statusText}`);
+  }, [config]);
+
   return (
     <SignalKContext.Provider value={{
       config,
@@ -37,6 +55,8 @@ function SignalKModeProvider({ config, updateConfig, children }: {
       rawState: sk.rawState,
       lastUpdate: sk.lastUpdate,
       error: sk.error,
+      putSK,
+      sendNMEA: () => {},
     }}>
       {children}
     </SignalKContext.Provider>
@@ -49,6 +69,7 @@ function NMEAModeProvider({ config, updateConfig, children }: {
   children: ReactNode;
 }) {
   const proxy = useNMEAProxy(config);
+
   return (
     <SignalKContext.Provider value={{
       config,
@@ -62,6 +83,8 @@ function NMEAModeProvider({ config, updateConfig, children }: {
       lastUpdate: proxy.lastUpdate,
       error: proxy.error,
       nmeaLog: proxy.nmeaLog,
+      putSK: async () => { throw new Error("Signal K PUT not available in NMEA TCP mode"); },
+      sendNMEA: proxy.sendSentence,
     }}>
       {children}
     </SignalKContext.Provider>

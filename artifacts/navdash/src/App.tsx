@@ -12,6 +12,7 @@ import { AIS } from "@/pages/AIS";
 import { Instruments } from "@/pages/Instruments";
 import { Settings } from "@/pages/Settings";
 import { Tracking } from "@/pages/Tracking";
+import { Autopilot } from "@/pages/Autopilot";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -24,6 +25,7 @@ import {
   Menu,
   X,
   Route as RouteIcon,
+  Cpu,
 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -35,6 +37,7 @@ const navItems = [
   { path: "/instruments", label: "Instruments", icon: Gauge },
   { path: "/ais", label: "AIS", icon: Radio },
   { path: "/tracking", label: "Tracking", icon: RouteIcon },
+  { path: "/autopilot", label: "Autopilot", icon: Cpu },
   { path: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
@@ -104,7 +107,7 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
             <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center">
               <Anchor className="w-4 h-4 text-cyan-400" />
             </div>
-            <span className="font-bold text-white tracking-wide">NavDash</span>
+            <span className="font-bold text-white tracking-wide">Phat Chance</span>
           </div>
           <button
             onClick={onClose}
@@ -148,7 +151,7 @@ function AppShell() {
           <div className="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center hidden lg:flex">
             <Anchor className="w-4 h-4 text-cyan-400" />
           </div>
-          <span className="font-bold text-white text-sm tracking-wide hidden lg:block">NavDash</span>
+          <span className="font-bold text-white text-sm tracking-wide hidden lg:block">Phat Chance</span>
         </div>
 
         <nav className="hidden lg:flex items-center gap-1 flex-1 overflow-x-auto">
@@ -172,6 +175,7 @@ function AppShell() {
           <Route path="/instruments" component={Instruments} />
           <Route path="/ais" component={AIS} />
           <Route path="/tracking" component={Tracking} />
+          <Route path="/autopilot" component={Autopilot} />
           <Route path="/settings" component={Settings} />
         </Switch>
       </main>

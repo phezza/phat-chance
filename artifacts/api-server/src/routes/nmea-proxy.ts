@@ -76,6 +76,26 @@ export function createNMEAProxyServer(): WebSocketServer {
 
     connectTCP();
 
+    ws.on("message", (data) => {
+      try {
+        const msg = JSON.parse(data.toString());
+        if (msg.type === "send" && typeof msg.sentence === "string") {
+          if (tcpSocket && !tcpSocket.destroyed) {
+            const line = msg.sentence.endsWith("\r\n") ? msg.sentence : msg.sentence + "\r\n";
+            tcpSocket.write(line);
+            logger.info({ sentence: msg.sentence }, "NMEA proxy: sent sentence to TCP");
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: "sent", sentence: msg.sentence }));
+            }
+          } else {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: "error", message: "TCP not connected, cannot send" }));
+            }
+          }
+        }
+      } catch {}
+    });
+
     ws.on("close", () => {
       destroyed = true;
       if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }

@@ -3,7 +3,7 @@ import { NavigationData, AISTarget, ConnectionStatus, SignalKConfig } from "./si
 import { parseNMEASentence, nmeaChecksum } from "./nmea";
 
 interface NMEAProxyMsg {
-  type: "connected" | "disconnected" | "connecting" | "error" | "nmea";
+  type: "connected" | "disconnected" | "connecting" | "error" | "nmea" | "sent";
   message?: string;
   sentence?: string;
 }
@@ -98,7 +98,7 @@ export function useNMEAProxy(config: SignalKConfig) {
       ws.onerror = () => {
         if (!mountedRef.current) return;
         setStatus("error");
-        setError("Cannot connect to NavDash proxy server");
+        setError("Cannot connect to proxy server — check the app server is running");
       };
 
       ws.onclose = () => {
@@ -114,11 +114,17 @@ export function useNMEAProxy(config: SignalKConfig) {
     }
   }, []);
 
+  const sendSentence = useCallback((sentence: string) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "send", sentence }));
+    }
+  }, []);
+
   useEffect(() => {
     mountedRef.current = true;
     if (config.mode === "nmea-tcp") connect(config);
     return () => { mountedRef.current = false; disconnect(); };
   }, []);
 
-  return { status, nav, setNav, aisTargets, setAISTargets, rawState: {}, setRawState: () => {}, lastUpdate, setLastUpdate, error, setError, setStatus, connect, disconnect, nmeaLog };
+  return { status, nav, setNav, aisTargets, setAISTargets, rawState: {}, setRawState: () => {}, lastUpdate, setLastUpdate, error, setError, setStatus, connect, disconnect, nmeaLog, sendSentence };
 }
