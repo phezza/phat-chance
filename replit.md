@@ -1,8 +1,8 @@
-# Workspace
+# NavDash - Marine Navigation Dashboard
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+A marine navigation dashboard that connects to a Signal K server (e.g., Digital Yacht NavLink2) via WebSocket and displays live NMEA data from the onboard network.
 
 ## Stack
 
@@ -10,18 +10,58 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Node.js version**: 24
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+- **Frontend**: React + Vite + Tailwind CSS
+- **Routing**: Wouter
+- **API framework**: Express 5 (shared API server, not used by navdash)
+- **Data source**: Signal K WebSocket (`/signalk/v1/stream?subscribe=all`)
+
+## Artifacts
+
+### navdash (main app, previewPath: `/`)
+Located at `artifacts/navdash/`. Frontend-only React app connecting to Signal K.
+
+**Pages:**
+- `/` — Dashboard: Compass, speed gauges, wind rose, autopilot status, position
+- `/navigation` — Navigation: Heading, COG, leeway, depth, position
+- `/wind` — Wind: Apparent/true speed+angle, Beaufort scale
+- `/instruments` — Instruments: All gauges in a grid view
+- `/ais` — AIS: Live AIS targets list with detail panel
+- `/settings` — Settings: Signal K host/port config, raw data viewer
+
+**Key files:**
+- `src/lib/signalk.ts` — Signal K WebSocket client, data types, unit conversions
+- `src/lib/SignalKContext.tsx` — React context provider for Signal K state
+- `src/components/CompassRose.tsx` — Canvas compass rose with heading needle
+- `src/components/GaugeRing.tsx` — Canvas arc gauge for speed/depth/wind
+- `src/components/WindRose.tsx` — Canvas wind direction/speed polar display
+- `src/components/DataTile.tsx` — Numeric data display tile
+- `src/components/StatusBar.tsx` — Connection status indicator
+
+## Signal K Connection
+
+Default host: `192.168.1.1:3000` (Digital Yacht NavLink2 default)
+
+Connects to: `ws://<host>:<port>/signalk/v1/stream?subscribe=all`
+
+Configuration is stored in localStorage and editable from the Settings page.
 
 ## Key Commands
 
+- `pnpm --filter @workspace/navdash run dev` — run dashboard locally
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+## Supported Signal K Paths
+
+- `navigation.speedOverGround` — SOG
+- `navigation.speedThroughWater` — STW
+- `navigation.headingMagnetic` / `navigation.headingTrue`
+- `navigation.courseOverGroundTrue` / `navigation.courseOverGroundMagnetic`
+- `navigation.position` — GPS lat/lon
+- `environment.wind.speedApparent` / `environment.wind.angleApparent`
+- `environment.wind.speedTrue` / `environment.wind.angleTrueWater`
+- `environment.depth.belowKeel` / `environment.depth.belowSurface`
+- `environment.water.temperature`
+- `steering.autopilot.state` / `steering.autopilot.target.headingMagnetic`
+- `navigation.magneticVariation`, `navigation.trip.log`, `navigation.log`
+- AIS vessel data from `vessels.urn:mrn:imo:mmsi:*` contexts
