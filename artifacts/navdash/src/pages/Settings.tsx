@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useSK } from "@/lib/SignalKContext";
-import { SignalKConfig } from "@/lib/signalk";
-import { Wifi, WifiOff, Save, RotateCcw } from "lucide-react";
+import { SignalKConfig, ConnectionMode } from "@/lib/signalk";
+import { Wifi, WifiOff, Save, RotateCcw, Radio, Server, Anchor } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function Settings() {
-  const { config, updateConfig, status, connect, disconnect, nav, aisTargets, rawState } = useSK();
+  const { config, updateConfig, status, connect, disconnect, nav, aisTargets, rawState, nmeaLog } = useSK();
   const [form, setForm] = useState<SignalKConfig>({ ...config });
   const [saved, setSaved] = useState(false);
 
@@ -19,61 +20,143 @@ export function Settings() {
     setForm({ ...config });
   };
 
+  const setMode = (mode: ConnectionMode) => setForm((prev) => ({ ...prev, mode }));
+
   const rawEntries = Object.entries(rawState)
     .filter(([key]) => key.includes("vessels.self"))
     .map(([key, val]) => ({ path: key.replace(/^vessels\.self\./, ""), value: val.value, timestamp: val.timestamp }))
     .sort((a, b) => a.path.localeCompare(b.path));
+
+  const statusColor = { connected: "#22d3ee", connecting: "#f59e0b", disconnected: "rgba(255,255,255,0.4)", error: "#ef4444" }[status];
 
   return (
     <div className="flex flex-col gap-6 p-4 max-w-3xl mx-auto" data-testid="settings-page">
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
         <h2 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
           <Wifi className="w-5 h-5 text-cyan-400" />
-          Signal K Connection
+          Connection Settings
         </h2>
 
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="text-white/40 uppercase tracking-widest text-xs block mb-2">Host / IP Address</label>
-            <input
-              type="text"
-              value={form.host}
-              onChange={(e) => setForm({ ...form, host: e.target.value })}
-              placeholder="192.168.1.1"
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-500/50"
-              data-testid="input-host"
-            />
-          </div>
-          <div>
-            <label className="text-white/40 uppercase tracking-widest text-xs block mb-2">Port</label>
-            <input
-              type="number"
-              value={form.port}
-              onChange={(e) => setForm({ ...form, port: Number(e.target.value) })}
-              placeholder="3000"
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-500/50"
-              data-testid="input-port"
-            />
+        <div className="mb-5">
+          <label className="text-white/40 uppercase tracking-widest text-xs block mb-3">Connection Mode</label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setMode("signalk")}
+              className={cn(
+                "flex flex-col items-center gap-2 p-4 rounded-xl border text-sm font-medium transition-all",
+                form.mode === "signalk"
+                  ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-400"
+                  : "bg-white/5 border-white/10 text-white/50 hover:border-white/20 hover:text-white/70"
+              )}
+              data-testid="mode-signalk"
+            >
+              <Server className="w-6 h-6" />
+              <span>Signal K Server</span>
+              <span className="text-xs opacity-60 font-normal text-center">WebSocket to Signal K / NavLink2 Signal K port</span>
+            </button>
+            <button
+              onClick={() => setMode("nmea-tcp")}
+              className={cn(
+                "flex flex-col items-center gap-2 p-4 rounded-xl border text-sm font-medium transition-all",
+                form.mode === "nmea-tcp"
+                  ? "bg-violet-500/15 border-violet-500/40 text-violet-400"
+                  : "bg-white/5 border-white/10 text-white/50 hover:border-white/20 hover:text-white/70"
+              )}
+              data-testid="mode-nmea-tcp"
+            >
+              <Anchor className="w-6 h-6" />
+              <span>Direct NMEA TCP</span>
+              <span className="text-xs opacity-60 font-normal text-center">Raw NMEA 0183 stream from NavLink2 TCP port</span>
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 mb-6">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.useTLS}
-              onChange={(e) => setForm({ ...form, useTLS: e.target.checked })}
-              className="rounded"
-              data-testid="input-tls"
-            />
-            <span className="text-white/60 text-sm">Use TLS (wss://)</span>
-          </label>
-        </div>
+        {form.mode === "signalk" && (
+          <>
+            <div className="text-white/30 text-xs mb-3 px-1">
+              Signal K mode connects to the NavLink2's Signal K server (typically port 3000) via WebSocket and receives structured data.
+            </div>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="text-white/40 uppercase tracking-widest text-xs block mb-2">Host / IP Address</label>
+                <input
+                  type="text"
+                  value={form.host}
+                  onChange={(e) => setForm({ ...form, host: e.target.value })}
+                  placeholder="192.168.1.1"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-500/50"
+                  data-testid="input-sk-host"
+                />
+              </div>
+              <div>
+                <label className="text-white/40 uppercase tracking-widest text-xs block mb-2">Port</label>
+                <input
+                  type="number"
+                  value={form.port}
+                  onChange={(e) => setForm({ ...form, port: Number(e.target.value) })}
+                  placeholder="3000"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-500/50"
+                  data-testid="input-sk-port"
+                />
+              </div>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer mb-4">
+              <input
+                type="checkbox"
+                checked={form.useTLS}
+                onChange={(e) => setForm({ ...form, useTLS: e.target.checked })}
+                className="rounded"
+                data-testid="input-tls"
+              />
+              <span className="text-white/60 text-sm">Use TLS (wss://)</span>
+            </label>
+          </>
+        )}
+
+        {form.mode === "nmea-tcp" && (
+          <>
+            <div className="text-white/30 text-xs mb-3 px-1">
+              Direct TCP mode connects to the NavLink2's raw NMEA TCP port (typically 10110) and parses NMEA 0183 sentences. No Signal K installation needed. The NavDash proxy server handles the TCP connection.
+            </div>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="text-white/40 uppercase tracking-widest text-xs block mb-2">NavLink2 Host / IP</label>
+                <input
+                  type="text"
+                  value={form.nmeaHost}
+                  onChange={(e) => setForm({ ...form, nmeaHost: e.target.value })}
+                  placeholder="192.168.1.1"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-violet-500/50"
+                  data-testid="input-nmea-host"
+                />
+              </div>
+              <div>
+                <label className="text-white/40 uppercase tracking-widest text-xs block mb-2">TCP Port</label>
+                <input
+                  type="number"
+                  value={form.nmeaPort}
+                  onChange={(e) => setForm({ ...form, nmeaPort: Number(e.target.value) })}
+                  placeholder="10110"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-violet-500/50"
+                  data-testid="input-nmea-port"
+                />
+              </div>
+            </div>
+            <div className="bg-violet-500/5 border border-violet-500/20 rounded-lg p-3 mb-4 text-xs text-violet-300/70">
+              <strong className="text-violet-300">NavLink2 TCP defaults:</strong> NMEA 0183 server usually runs on port 10110. Check the NavLink2 web interface under Network &gt; TCP Connections for the exact port and make sure NMEA output is enabled.
+            </div>
+          </>
+        )}
 
         <div className="flex gap-3">
           <button
             onClick={handleSave}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 rounded-lg text-sm font-medium hover:bg-cyan-500/30 transition-colors"
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border",
+              form.mode === "nmea-tcp"
+                ? "bg-violet-500/20 border-violet-500/40 text-violet-400 hover:bg-violet-500/30"
+                : "bg-cyan-500/20 border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/30"
+            )}
             data-testid="button-save"
           >
             <Save className="w-4 h-4" />
@@ -111,54 +194,69 @@ export function Settings() {
 
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-          <div className="text-white/40 text-xs uppercase tracking-widest mb-2">Data Paths Received</div>
-          <div className="text-3xl font-bold font-mono text-cyan-400">{rawEntries.length}</div>
+          <div className="text-white/40 text-xs uppercase tracking-widest mb-2">Connection</div>
+          <div className="text-sm font-bold capitalize" style={{ color: statusColor }}>{status}</div>
+          <div className="text-white/25 text-xs mt-1">{config.mode === "nmea-tcp" ? "Direct NMEA TCP" : "Signal K"}</div>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-xl p-4">
           <div className="text-white/40 text-xs uppercase tracking-widest mb-2">AIS Targets</div>
           <div className="text-3xl font-bold font-mono text-violet-400">{aisTargets.size}</div>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-          <div className="text-white/40 text-xs uppercase tracking-widest mb-2">Connection</div>
-          <div className="text-sm font-bold capitalize" style={{ color: status === "connected" ? "#22d3ee" : status === "error" ? "#ef4444" : "rgba(255,255,255,0.4)" }}>
-            {status}
+          <div className="text-white/40 text-xs uppercase tracking-widest mb-2">{config.mode === "nmea-tcp" ? "NMEA Sentences" : "Data Paths"}</div>
+          <div className="text-3xl font-bold font-mono text-cyan-400">
+            {config.mode === "nmea-tcp" ? (nmeaLog?.length ?? 0) : rawEntries.length}
           </div>
         </div>
       </div>
 
-      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/10">
-          <h3 className="text-white/60 text-sm font-medium">Live Data Paths (own vessel)</h3>
+      {config.mode === "nmea-tcp" && nmeaLog && nmeaLog.length > 0 && (
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2">
+            <Radio className="w-4 h-4 text-violet-400" />
+            <h3 className="text-white/60 text-sm font-medium">Live NMEA Stream</h3>
+          </div>
+          <div className="max-h-64 overflow-y-auto p-3 font-mono text-xs text-green-400/70 bg-black/30 space-y-0.5">
+            {nmeaLog.map((line, i) => (
+              <div key={i} className="leading-5 hover:text-green-300 transition-colors">{line}</div>
+            ))}
+          </div>
         </div>
-        <div className="max-h-96 overflow-y-auto">
-          {rawEntries.length === 0 ? (
-            <div className="p-6 text-center text-white/30 text-sm">No data received yet</div>
-          ) : (
-            <table className="w-full text-xs">
-              <thead className="sticky top-0 bg-black/50 backdrop-blur">
-                <tr>
-                  <th className="text-left px-4 py-2 text-white/30 font-medium w-1/2">Path</th>
-                  <th className="text-left px-4 py-2 text-white/30 font-medium w-1/3">Value</th>
-                  <th className="text-left px-4 py-2 text-white/30 font-medium">Updated</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {rawEntries.map(({ path, value, timestamp }) => (
-                  <tr key={path} className="hover:bg-white/5">
-                    <td className="px-4 py-2 font-mono text-cyan-400/70">{path}</td>
-                    <td className="px-4 py-2 font-mono text-white/60 truncate max-w-0">
-                      {typeof value === "object" ? JSON.stringify(value) : String(value)}
-                    </td>
-                    <td className="px-4 py-2 text-white/30">
-                      {new Date(timestamp).toLocaleTimeString()}
-                    </td>
+      )}
+
+      {config.mode === "signalk" && (
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-white/10">
+            <h3 className="text-white/60 text-sm font-medium">Live Data Paths (own vessel)</h3>
+          </div>
+          <div className="max-h-96 overflow-y-auto">
+            {rawEntries.length === 0 ? (
+              <div className="p-6 text-center text-white/30 text-sm">No data received yet</div>
+            ) : (
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-black/50 backdrop-blur">
+                  <tr>
+                    <th className="text-left px-4 py-2 text-white/30 font-medium w-1/2">Path</th>
+                    <th className="text-left px-4 py-2 text-white/30 font-medium w-1/3">Value</th>
+                    <th className="text-left px-4 py-2 text-white/30 font-medium">Updated</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {rawEntries.map(({ path, value, timestamp }) => (
+                    <tr key={path} className="hover:bg-white/5">
+                      <td className="px-4 py-2 font-mono text-cyan-400/70">{path}</td>
+                      <td className="px-4 py-2 font-mono text-white/60 truncate max-w-0">
+                        {typeof value === "object" ? JSON.stringify(value) : String(value)}
+                      </td>
+                      <td className="px-4 py-2 text-white/30">{new Date(timestamp).toLocaleTimeString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

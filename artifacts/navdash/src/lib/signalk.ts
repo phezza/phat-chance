@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 
+export type ConnectionMode = "signalk" | "nmea-tcp";
+
 export interface SignalKConfig {
+  mode: ConnectionMode;
   host: string;
   port: number;
   useTLS: boolean;
-  self?: string;
+  nmeaHost: string;
+  nmeaPort: number;
 }
 
 export interface SignalKValue {
@@ -64,9 +68,12 @@ export interface NavigationData {
 export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
 
 const DEFAULT_CONFIG: SignalKConfig = {
+  mode: "signalk",
   host: "192.168.1.1",
   port: 3000,
   useTLS: false,
+  nmeaHost: "192.168.1.1",
+  nmeaPort: 10110,
 };
 
 const CONFIG_KEY = "navdash_signalk_config";
@@ -83,7 +90,7 @@ export function saveConfig(config: SignalKConfig): void {
   localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
 }
 
-function parsePath(path: string, value: unknown, nav: NavigationData): NavigationData {
+export function parseSKPath(path: string, value: unknown, nav: NavigationData): NavigationData {
   const result = { ...nav };
   switch (path) {
     case "navigation.speedOverGround":
@@ -154,7 +161,7 @@ function parsePath(path: string, value: unknown, nav: NavigationData): Navigatio
   return result;
 }
 
-function parseAISPath(
+export function parseAISPath(
   path: string,
   value: unknown,
   mmsi: string,
@@ -162,7 +169,6 @@ function parseAISPath(
 ): Map<string, AISTarget> {
   const next = new Map(targets);
   const existing = next.get(mmsi) ?? { mmsi };
-
   const updated = { ...existing };
 
   if (path === "name") updated.name = typeof value === "string" ? value : undefined;
@@ -188,8 +194,7 @@ function parseAISPath(
   return next;
 }
 
-export function useSignalK() {
-  const [config, setConfigState] = useState<SignalKConfig>(loadConfig);
+export function useSignalK(config: SignalKConfig) {
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [nav, setNav] = useState<NavigationData>({});
   const [aisTargets, setAISTargets] = useState<Map<string, AISTarget>>(new Map());
@@ -200,22 +205,18 @@ export function useSignalK() {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
+  const configRef = useRef(config);
+  configRef.current = config;
 
-  const updateConfig = useCallback((newConfig: SignalKConfig) => {
-    saveConfig(newConfig);
-    setConfigState(newConfig);
+  const disconnect = useCallback(() => {
+    if (reconnectRef.current) { clearTimeout(reconnectRef.current); reconnectRef.current = null; }
+    if (wsRef.current) { wsRef.current.onclose = null; wsRef.current.close(); wsRef.current = null; }
+    setStatus("disconnected");
   }, []);
 
   const connect = useCallback((cfg: SignalKConfig) => {
-    if (wsRef.current) {
-      wsRef.current.onclose = null;
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    if (reconnectRef.current) {
-      clearTimeout(reconnectRef.current);
-      reconnectRef.current = null;
-    }
+    if (wsRef.current) { wsRef.current.onclose = null; wsRef.current.close(); wsRef.current = null; }
+    if (reconnectRef.current) { clearTimeout(reconnectRef.current); reconnectRef.current = null; }
 
     setStatus("connecting");
     setError(null);
@@ -227,47 +228,30 @@ export function useSignalK() {
       const ws = new WebSocket(url);
       wsRef.current = ws;
 
-      ws.onopen = () => {
-        if (!mountedRef.current) return;
-        setStatus("connected");
-        setError(null);
-      };
+      ws.onopen = () => { if (!mountedRef.current) return; setStatus("connected"); setError(null); };
 
       ws.onmessage = (event) => {
         if (!mountedRef.current) return;
         try {
-          const data: SignalKDelta = JSON.parse(event.data);
+          const data = JSON.parse(event.data);
           setLastUpdate(new Date());
-
           if (!data.updates) return;
-
           const context = data.context ?? "vessels.self";
           const isSelf = context === "vessels.self" || context.includes("self");
-
           const mmsiMatch = context.match(/vessels\.urn:mrn:imo:mmsi:(\d+)/);
           const mmsi = mmsiMatch?.[1];
-
           for (const update of data.updates) {
             if (!update.values) continue;
             for (const { path, value } of update.values) {
               setRawState((prev) => ({
                 ...prev,
-                [`${context}.${path}`]: {
-                  value,
-                  timestamp: update.timestamp ?? new Date().toISOString(),
-                  $source: update.source?.label ?? "",
-                },
+                [`${context}.${path}`]: { value, timestamp: update.timestamp ?? new Date().toISOString(), $source: update.source?.label ?? "" },
               }));
-
-              if (isSelf) {
-                setNav((prev) => parsePath(path, value, prev));
-              } else if (mmsi) {
-                setAISTargets((prev) => parseAISPath(path, value, mmsi, prev));
-              }
+              if (isSelf) setNav((prev) => parseSKPath(path, value, prev));
+              else if (mmsi) setAISTargets((prev) => parseAISPath(path, value, mmsi, prev));
             }
           }
-        } catch {
-        }
+        } catch {}
       };
 
       ws.onerror = () => {
@@ -279,9 +263,7 @@ export function useSignalK() {
       ws.onclose = () => {
         if (!mountedRef.current) return;
         setStatus("disconnected");
-        reconnectRef.current = setTimeout(() => {
-          if (mountedRef.current) connect(cfg);
-        }, 5000);
+        reconnectRef.current = setTimeout(() => { if (mountedRef.current) connect(configRef.current); }, 5000);
       };
     } catch (e) {
       setStatus("error");
@@ -289,40 +271,13 @@ export function useSignalK() {
     }
   }, []);
 
-  const disconnect = useCallback(() => {
-    if (reconnectRef.current) {
-      clearTimeout(reconnectRef.current);
-      reconnectRef.current = null;
-    }
-    if (wsRef.current) {
-      wsRef.current.onclose = null;
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    setStatus("disconnected");
-  }, []);
-
   useEffect(() => {
     mountedRef.current = true;
-    connect(config);
-    return () => {
-      mountedRef.current = false;
-      disconnect();
-    };
+    if (config.mode === "signalk") connect(config);
+    return () => { mountedRef.current = false; disconnect(); };
   }, []);
 
-  return {
-    config,
-    updateConfig,
-    status,
-    nav,
-    aisTargets,
-    rawState,
-    lastUpdate,
-    error,
-    connect,
-    disconnect,
-  };
+  return { status, nav, setNav, aisTargets, setAISTargets, rawState, setRawState, lastUpdate, setLastUpdate, error, setError, setStatus, connect, disconnect };
 }
 
 export function radToDeg(rad: number): number {
@@ -364,16 +319,7 @@ export function getAISShipTypeName(type?: number): string {
   if (type == null) return "Unknown";
   if (type >= 20 && type < 30) return "Wing in Ground";
   if (type >= 30 && type < 40) {
-    const map: Record<number, string> = {
-      30: "Fishing",
-      31: "Towing",
-      32: "Towing Large",
-      33: "Dredge",
-      34: "Dive Ops",
-      35: "Military",
-      36: "Sailing",
-      37: "Pleasure Craft",
-    };
+    const map: Record<number, string> = { 30: "Fishing", 31: "Towing", 32: "Towing Large", 33: "Dredge", 34: "Dive Ops", 35: "Military", 36: "Sailing", 37: "Pleasure Craft" };
     return map[type] ?? "Fishing/Special";
   }
   if (type >= 40 && type < 50) return "High Speed Craft";
@@ -390,17 +336,6 @@ export function getAISShipTypeName(type?: number): string {
 }
 
 export function getNavStatus(status?: number): string {
-  const map: Record<number, string> = {
-    0: "Under way",
-    1: "At anchor",
-    2: "Not under command",
-    3: "Restricted maneuverability",
-    4: "Constrained by draft",
-    5: "Moored",
-    6: "Aground",
-    7: "Engaged in fishing",
-    8: "Under sail",
-    15: "Default",
-  };
+  const map: Record<number, string> = { 0: "Under way", 1: "At anchor", 2: "Not under command", 3: "Restricted maneuverability", 4: "Constrained by draft", 5: "Moored", 6: "Aground", 7: "Engaged in fishing", 8: "Under sail", 15: "Default" };
   return status != null ? (map[status] ?? `Status ${status}`) : "Unknown";
 }

@@ -1,6 +1,6 @@
 import { useSK } from "@/lib/SignalKContext";
 import { cn } from "@/lib/utils";
-import { Wifi, WifiOff, AlertTriangle, RefreshCw } from "lucide-react";
+import { Wifi, WifiOff, AlertTriangle, RefreshCw, Anchor } from "lucide-react";
 
 export function StatusBar() {
   const { status, config, lastUpdate, error } = useSK();
@@ -34,31 +34,36 @@ export function StatusBar() {
 
   const s = statusConfig[status];
   const Icon = s.icon;
+  const isNMEA = config.mode === "nmea-tcp";
+  const host = isNMEA ? config.nmeaHost : config.host;
+  const port = isNMEA ? config.nmeaPort : config.port;
 
   return (
     <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs", s.bg)}>
-      <Icon className={cn("w-3.5 h-3.5", status === "connecting" ? "animate-spin" : "", s.color)} />
+      {isNMEA ? (
+        <Anchor className={cn("w-3.5 h-3.5", s.color)} />
+      ) : (
+        <Icon className={cn("w-3.5 h-3.5", status === "connecting" ? "animate-spin" : "", s.color)} />
+      )}
       <span className={s.color}>{s.label}</span>
       {status === "connected" && (
         <>
           <span className="text-white/25">|</span>
-          <span className="text-white/40 font-mono">
-            {config.host}:{config.port}
-          </span>
+          <span className="text-white/40 font-mono">{host}:{port}</span>
+          <span className="text-white/25">|</span>
+          <span className="text-white/30">{isNMEA ? "NMEA" : "SignalK"}</span>
         </>
       )}
       {status === "error" && error && (
         <>
           <span className="text-white/25">|</span>
-          <span className="text-red-300/70">{error}</span>
+          <span className="text-red-300/70 truncate max-w-48">{error}</span>
         </>
       )}
       {lastUpdate && status === "connected" && (
         <>
           <span className="text-white/25">|</span>
-          <span className="text-white/30">
-            {lastUpdate.toLocaleTimeString()}
-          </span>
+          <span className="text-white/30">{lastUpdate.toLocaleTimeString()}</span>
         </>
       )}
     </div>

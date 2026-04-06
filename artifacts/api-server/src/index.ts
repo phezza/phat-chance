@@ -1,5 +1,7 @@
+import http from "http";
 import app from "./app";
 import { logger } from "./lib/logger";
+import { createNMEAProxyServer } from "./routes/nmea-proxy";
 
 const rawPort = process.env["PORT"];
 
@@ -15,11 +17,24 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, (err) => {
+const server = http.createServer(app);
+const nmeaProxy = createNMEAProxyServer();
+
+server.on("upgrade", (request, socket, head) => {
+  const url = new URL(request.url ?? "/", "http://localhost");
+  if (url.pathname === "/api/nmea-stream") {
+    nmeaProxy.handleUpgrade(request, socket, head, (ws) => {
+      nmeaProxy.emit("connection", ws, request);
+    });
+  } else {
+    socket.destroy();
+  }
+});
+
+server.listen(port, (err?: Error) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
     process.exit(1);
   }
-
   logger.info({ port }, "Server listening");
 });
