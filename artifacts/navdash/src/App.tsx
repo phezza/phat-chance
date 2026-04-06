@@ -11,6 +11,7 @@ import { Wind } from "@/pages/Wind";
 import { AIS } from "@/pages/AIS";
 import { Instruments } from "@/pages/Instruments";
 import { Settings } from "@/pages/Settings";
+import { Tracking } from "@/pages/Tracking";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -22,6 +23,7 @@ import {
   Anchor,
   Menu,
   X,
+  Route as RouteIcon,
 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -32,6 +34,7 @@ const navItems = [
   { path: "/wind", label: "Wind", icon: WindIcon },
   { path: "/instruments", label: "Instruments", icon: Gauge },
   { path: "/ais", label: "AIS", icon: Radio },
+  { path: "/tracking", label: "Tracking", icon: RouteIcon },
   { path: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
@@ -168,6 +171,7 @@ function AppShell() {
           <Route path="/wind" component={Wind} />
           <Route path="/instruments" component={Instruments} />
           <Route path="/ais" component={AIS} />
+          <Route path="/tracking" component={Tracking} />
           <Route path="/settings" component={Settings} />
         </Switch>
       </main>
