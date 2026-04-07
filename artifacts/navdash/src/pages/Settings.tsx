@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useSK } from "@/lib/SignalKContext";
 import { SignalKConfig, ConnectionMode } from "@/lib/signalk";
-import { Wifi, WifiOff, Save, RotateCcw, Radio, Server, Anchor } from "lucide-react";
+import { Wifi, WifiOff, Save, RotateCcw, Radio, Server, Anchor, Settings as SettingsIcon } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
 
 export function Settings() {
@@ -30,7 +31,9 @@ export function Settings() {
   const statusColor = { connected: "#22d3ee", connecting: "#f59e0b", disconnected: "rgba(255,255,255,0.4)", error: "#ef4444" }[status];
 
   return (
-    <div className="flex flex-col gap-6 p-4 max-w-3xl mx-auto" data-testid="settings-page">
+    <div className="flex flex-col" data-testid="settings-page">
+      <PageHeader title="Settings" icon={SettingsIcon} />
+      <div className="flex flex-col gap-6 p-4 max-w-3xl mx-auto">
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
         <h2 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
           <Wifi className="w-5 h-5 text-cyan-400" />
@@ -257,6 +260,7 @@ export function Settings() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

@@ -310,6 +310,22 @@
   }
 }
 
+/* Scrolling marquee for long text */
+.marquee-container {
+  overflow: hidden;
+  white-space: nowrap;
+}
+.marquee-text {
+  display: inline-block;
+  animation: marquee-scroll 10s linear infinite;
+  padding-right: 2rem;
+}
+@keyframes marquee-scroll {
+  0%   { transform: translateX(0); }
+  20%  { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
 /* Leaflet dark theme overrides */
 .leaflet-container {
   font-family: inherit;

@@ -2,6 +2,8 @@ import { useSK } from "@/lib/SignalKContext";
 import { mpsToKnots, radToDeg, metersToFeet } from "@/lib/signalk";
 import { GaugeRing } from "@/components/GaugeRing";
 import { DataTile } from "@/components/DataTile";
+import { PageHeader } from "@/components/PageHeader";
+import { Gauge } from "lucide-react";
 
 function fmt(val: number | undefined, decimals = 1): string {
   if (val == null || !Number.isFinite(val)) return "--";
@@ -49,47 +51,50 @@ export function Instruments() {
   ];
 
   return (
-    <div className="flex flex-col gap-4 p-4" data-testid="instruments-page">
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-        {instruments.map(({ title, gauge }) => (
-          <div key={title} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col items-center">
-            <p className="text-white/40 uppercase tracking-widest text-xs mb-3 font-medium text-center leading-tight">{title}</p>
-            <GaugeRing {...gauge} size={130} />
-          </div>
-        ))}
-      </div>
+    <div className="flex flex-col" data-testid="instruments-page">
+      <PageHeader title="Instruments" icon={Gauge} />
+      <div className="flex flex-col gap-4 p-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+          {instruments.map(({ title, gauge }) => (
+            <div key={title} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col items-center">
+              <p className="text-white/40 uppercase tracking-widest text-xs mb-3 font-medium text-center leading-tight">{title}</p>
+              <GaugeRing {...gauge} size={130} />
+            </div>
+          ))}
+        </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-        <DataTile
-          label="Heading"
-          value={hdg != null ? Math.round(((hdg % 360) + 360) % 360).toString() : "--"}
-          unit="°"
-          size="md"
-          color="#22d3ee"
-          subValue={nav.headingMagnetic != null ? "Magnetic" : "True"}
-        />
-        <DataTile
-          label="Apparent Wind Angle"
-          value={awa != null ? fmt(awa, 0) : "--"}
-          unit="°"
-          size="md"
-          color="#22d3ee"
-          subValue={awa != null ? (awa > 180 ? `${(360 - awa).toFixed(0)}° Port` : `${awa.toFixed(0)}° Stbd`) : undefined}
-        />
-        <DataTile
-          label="Depth (ft)"
-          value={depthFt != null ? fmt(depthFt, 0) : "--"}
-          unit="ft"
-          size="md"
-          color={depth != null && depth < 3 ? "#ef4444" : "#22d3ee"}
-        />
-        <DataTile
-          label="Autopilot"
-          value={nav.autopilotState ?? "--"}
-          size="md"
-          color={nav.autopilotState === "auto" ? "#22d3ee" : nav.autopilotState === "standby" ? "#f59e0b" : "rgba(255,255,255,0.3)"}
-          subValue={nav.autopilotTargetHeading != null ? `Target: ${radToDeg(nav.autopilotTargetHeading).toFixed(0)}°` : undefined}
-        />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+          <DataTile
+            label="Heading"
+            value={hdg != null ? Math.round(((hdg % 360) + 360) % 360).toString() : "--"}
+            unit="°"
+            size="md"
+            color="#22d3ee"
+            subValue={nav.headingMagnetic != null ? "Magnetic" : "True"}
+          />
+          <DataTile
+            label="Apparent Wind Angle"
+            value={awa != null ? fmt(awa, 0) : "--"}
+            unit="°"
+            size="md"
+            color="#22d3ee"
+            subValue={awa != null ? (awa > 180 ? `${(360 - awa).toFixed(0)}° Port` : `${awa.toFixed(0)}° Stbd`) : undefined}
+          />
+          <DataTile
+            label="Depth (ft)"
+            value={depthFt != null ? fmt(depthFt, 0) : "--"}
+            unit="ft"
+            size="md"
+            color={depth != null && depth < 3 ? "#ef4444" : "#22d3ee"}
+          />
+          <DataTile
+            label="Autopilot"
+            value={nav.autopilotState ?? "--"}
+            size="md"
+            color={nav.autopilotState === "auto" ? "#22d3ee" : nav.autopilotState === "standby" ? "#f59e0b" : "rgba(255,255,255,0.3)"}
+            subValue={nav.autopilotTargetHeading != null ? `Target: ${radToDeg(nav.autopilotTargetHeading).toFixed(0)}°` : undefined}
+          />
+        </div>
       </div>
     </div>
   );

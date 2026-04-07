@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useSK } from "@/lib/SignalKContext";
+import { PageHeader } from "@/components/PageHeader";
 import { radToDeg } from "@/lib/signalk";
 import { cn } from "@/lib/utils";
 import {
@@ -266,28 +267,27 @@ export function Autopilot() {
 
   return (
     <div className="flex flex-col h-full bg-[#070d1a] overflow-y-auto">
-      <div className="flex-shrink-0 px-4 pt-4 pb-3 flex flex-wrap items-center justify-between gap-3 border-b border-white/8">
-        <div className="flex items-center gap-3">
-          <Cpu className="w-5 h-5 text-cyan-400" />
-          <h1 className="text-white font-semibold tracking-wide">Autopilot</h1>
+      <PageHeader
+        title="Autopilot"
+        icon={Cpu}
+        badge={
           <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-mono font-medium border uppercase tracking-wider", modeColor)}>
             {activeMode}
           </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {cmdStatus === "sending" && <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />}
-          {cmdStatus === "ok" && <CheckCircle2 className="w-4 h-4 text-green-400" />}
-          {cmdStatus === "error" && <AlertTriangle className="w-4 h-4 text-red-400" />}
-          <span className={cn("text-xs font-mono", connected ? "text-green-400" : "text-white/30")}>
-            {connected ? "CONNECTED" : "NO SIGNAL"}
+        }
+      >
+        {cmdStatus === "sending" && <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />}
+        {cmdStatus === "ok" && <CheckCircle2 className="w-4 h-4 text-green-400" />}
+        {cmdStatus === "error" && <AlertTriangle className="w-4 h-4 text-red-400" />}
+        <span className={cn("text-xs font-mono", connected ? "text-green-400" : "text-white/30")}>
+          {connected ? "CONNECTED" : "NO SIGNAL"}
+        </span>
+        {isNMEA && (
+          <span className="text-xs font-mono text-amber-400/60 border border-amber-400/20 rounded px-1.5 py-0.5">
+            NMEA MODE
           </span>
-          {isNMEA && (
-            <span className="text-xs font-mono text-amber-400/60 border border-amber-400/20 rounded px-1.5 py-0.5">
-              NMEA MODE
-            </span>
-          )}
-        </div>
-      </div>
+        )}
+      </PageHeader>
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 p-4">
 

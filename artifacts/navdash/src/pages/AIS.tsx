@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useSK } from "@/lib/SignalKContext";
 import { mpsToKnots, radToDeg, getAISShipTypeName, getNavStatus } from "@/lib/signalk";
 import { Ship, Radio, MapPin } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 
 function fmt(val: number | undefined, decimals = 1): string {
   if (val == null || !Number.isFinite(val)) return "--";
@@ -52,7 +53,9 @@ export function AIS() {
   const selectedTarget = selected ? aisTargets.get(selected) : null;
 
   return (
-    <div className="flex flex-col gap-4 p-4 h-full" data-testid="ais-page">
+    <div className="flex flex-col h-full" data-testid="ais-page">
+      <PageHeader title="AIS Targets" icon={Radio} />
+      <div className="flex flex-col gap-4 p-4 flex-1 min-h-0">
       <div className="flex items-center gap-3">
         <div className="flex-1 relative">
           <input
@@ -228,6 +231,7 @@ export function AIS() {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

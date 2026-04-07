@@ -2,6 +2,7 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import { MapContainer, TileLayer, Polyline, useMap, Marker } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { PageHeader } from "@/components/PageHeader";
 import { useSK } from "@/lib/SignalKContext";
 import {
   MapPin,
@@ -224,73 +225,73 @@ export function Tracking() {
 
   return (
     <div className="flex flex-col h-full bg-[#070d1a]">
-      <div className="flex-shrink-0 px-4 pt-4 pb-3 flex flex-wrap items-center justify-between gap-3 border-b border-white/8">
-        <div className="flex items-center gap-3">
-          <Route className="w-5 h-5 text-cyan-400" />
-          <h1 className="text-white font-semibold tracking-wide">Track Log</h1>
-          {trackState === "armed" && (
-            <span className="px-2 py-0.5 rounded-full text-xs font-mono bg-amber-500/15 text-amber-400 border border-amber-500/25 animate-pulse">
-              WAITING 50m
-            </span>
-          )}
-          {trackState === "recording" && (
-            <span className="px-2 py-0.5 rounded-full text-xs font-mono bg-green-500/15 text-green-400 border border-green-500/25">
-              ● RECORDING
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {trackState === "idle" ? (
-            <button
-              onClick={startTracking}
-              disabled={!hasGPS}
-              className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all border",
-                hasGPS
-                  ? "bg-green-500/15 text-green-400 border-green-500/30 hover:bg-green-500/25"
-                  : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed"
-              )}
-            >
-              <Play className="w-3.5 h-3.5" />
-              Start Tracking
-            </button>
-          ) : (
-            <button
-              onClick={stopTracking}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 transition-all"
-            >
-              <Square className="w-3.5 h-3.5" />
-              Stop
-            </button>
-          )}
+      <PageHeader
+        title="Track Log"
+        icon={Route}
+        badge={
+          <>
+            {trackState === "armed" && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-mono bg-amber-500/15 text-amber-400 border border-amber-500/25 animate-pulse">
+                WAITING 50m
+              </span>
+            )}
+            {trackState === "recording" && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-mono bg-green-500/15 text-green-400 border border-green-500/25">
+                ● RECORDING
+              </span>
+            )}
+          </>
+        }
+      >
+        {trackState === "idle" ? (
           <button
-            onClick={clearTrack}
-            disabled={trackPoints.length === 0 && trackState === "idle"}
+            onClick={startTracking}
+            disabled={!hasGPS}
             className={cn(
               "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all border",
-              trackPoints.length > 0 || trackState !== "idle"
-                ? "bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white/70"
-                : "bg-white/5 text-white/20 border-white/5 cursor-not-allowed"
+              hasGPS
+                ? "bg-green-500/15 text-green-400 border-green-500/30 hover:bg-green-500/25"
+                : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed"
             )}
           >
-            <Trash2 className="w-3.5 h-3.5" />
-            Clear
+            <Play className="w-3.5 h-3.5" />
+            Start
           </button>
+        ) : (
           <button
-            onClick={() => setFollow((f) => !f)}
-            title={follow ? "Unfollow boat" : "Follow boat"}
-            className={cn(
-              "w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all border",
-              follow
-                ? "bg-cyan-500/15 text-cyan-400 border-cyan-500/30"
-                : "bg-white/5 text-white/40 border-white/10 hover:bg-white/10"
-            )}
+            onClick={stopTracking}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 transition-all"
           >
-            <Navigation2 className="w-3.5 h-3.5" />
+            <Square className="w-3.5 h-3.5" />
+            Stop
           </button>
-        </div>
-      </div>
+        )}
+        <button
+          onClick={clearTrack}
+          disabled={trackPoints.length === 0 && trackState === "idle"}
+          className={cn(
+            "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all border",
+            trackPoints.length > 0 || trackState !== "idle"
+              ? "bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white/70"
+              : "bg-white/5 text-white/20 border-white/5 cursor-not-allowed"
+          )}
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          Clear
+        </button>
+        <button
+          onClick={() => setFollow((f) => !f)}
+          title={follow ? "Unfollow boat" : "Follow boat"}
+          className={cn(
+            "w-8 h-8 rounded-lg flex items-center justify-center transition-all border",
+            follow
+              ? "bg-cyan-500/15 text-cyan-400 border-cyan-500/30"
+              : "bg-white/5 text-white/40 border-white/10 hover:bg-white/10"
+          )}
+        >
+          <Navigation2 className="w-3.5 h-3.5" />
+        </button>
+      </PageHeader>
 
       <div className="flex-shrink-0 grid grid-cols-2 sm:grid-cols-4 gap-2 px-4 py-3 border-b border-white/8">
         <StatBox

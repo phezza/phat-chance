@@ -3,6 +3,8 @@ import { mpsToKnots, radToDeg } from "@/lib/signalk";
 import { DataTile } from "@/components/DataTile";
 import { GaugeRing } from "@/components/GaugeRing";
 import { WindRose } from "@/components/WindRose";
+import { PageHeader } from "@/components/PageHeader";
+import { Wind as WindIcon } from "lucide-react";
 
 function fmt(val: number | undefined, decimals = 1): string {
   if (val == null || !Number.isFinite(val)) return "--";
@@ -46,86 +48,89 @@ export function Wind() {
     : "#22d3ee";
 
   return (
-    <div className="flex flex-col gap-4 p-4" data-testid="wind-page">
-      <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 lg:col-span-5 flex flex-col items-center gap-4">
-          <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col items-center">
-            <p className="text-white/40 uppercase tracking-widest text-xs mb-4 font-medium">Wind Direction</p>
-            <WindRose
-              apparentAngle={awa}
-              apparentSpeed={aws}
-              trueAngle={twa}
-              trueSpeed={tws}
-              size={240}
+    <div className="flex flex-col" data-testid="wind-page">
+      <PageHeader title="Wind & Weather" icon={WindIcon} />
+      <div className="flex flex-col gap-4 p-4">
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 lg:col-span-5 flex flex-col items-center gap-4">
+            <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col items-center">
+              <p className="text-white/40 uppercase tracking-widest text-xs mb-4 font-medium">Wind Direction</p>
+              <WindRose
+                apparentAngle={awa}
+                apparentSpeed={aws}
+                trueAngle={twa}
+                trueSpeed={tws}
+                size={240}
+              />
+              <div className="mt-4 flex gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-0.5 bg-cyan-400 rounded" />
+                  <span className="text-white/50">Apparent</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-0.5 bg-cyan-400/40 rounded" />
+                  <span className="text-white/50">True</span>
+                </div>
+              </div>
+            </div>
+
+            {beaufort && (
+              <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                <p className="text-white/40 uppercase tracking-widest text-xs mb-2 font-medium">Beaufort Scale</p>
+                <div className="text-6xl font-bold font-mono" style={{ color: beaufortColor }}>
+                  {beaufort.force}
+                </div>
+                <div className="text-white/60 mt-1 font-medium">{beaufort.description}</div>
+              </div>
+            )}
+          </div>
+
+          <div className="col-span-12 lg:col-span-7 grid grid-cols-2 gap-4 content-start">
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col items-center">
+              <p className="text-white/40 uppercase tracking-widest text-xs mb-2 font-medium">Apparent Wind Speed</p>
+              <GaugeRing value={aws ?? 0} min={0} max={50} unit="kn" label="AWS" size={160} color="#22d3ee" />
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col items-center">
+              <p className="text-white/40 uppercase tracking-widest text-xs mb-2 font-medium">True Wind Speed</p>
+              <GaugeRing value={tws ?? 0} min={0} max={50} unit="kn" label="TWS" size={160} color="rgba(34,211,238,0.6)" />
+            </div>
+
+            <DataTile
+              label="Apparent Wind Angle"
+              value={awa != null ? fmt(awa, 0) : "--"}
+              unit="°"
+              size="md"
+              color="#22d3ee"
+              subValue={awa != null ? getWindDescription(awa) : undefined}
             />
-            <div className="mt-4 flex gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-0.5 bg-cyan-400 rounded" />
-                <span className="text-white/50">Apparent</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-0.5 bg-cyan-400/40 rounded" />
-                <span className="text-white/50">True</span>
-              </div>
-            </div>
+            <DataTile
+              label="True Wind Angle"
+              value={twa != null ? fmt(twa, 0) : "--"}
+              unit="°"
+              size="md"
+              color="rgba(34,211,238,0.7)"
+              subValue={twa != null ? getWindDescription(twa) : undefined}
+            />
+
+            <DataTile
+              label="Upwind VMG"
+              value={tws != null && twa != null
+                ? fmt(tws * Math.abs(Math.cos((twa * Math.PI) / 180)))
+                : "--"}
+              unit="kn"
+              size="sm"
+              color="#a78bfa"
+            />
+            <DataTile
+              label="Crosswind"
+              value={tws != null && twa != null
+                ? fmt(Math.abs(tws * Math.sin((twa * Math.PI) / 180)))
+                : "--"}
+              unit="kn"
+              size="sm"
+              color="#f59e0b"
+            />
           </div>
-
-          {beaufort && (
-            <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-              <p className="text-white/40 uppercase tracking-widest text-xs mb-2 font-medium">Beaufort Scale</p>
-              <div className="text-6xl font-bold font-mono" style={{ color: beaufortColor }}>
-                {beaufort.force}
-              </div>
-              <div className="text-white/60 mt-1 font-medium">{beaufort.description}</div>
-            </div>
-          )}
-        </div>
-
-        <div className="col-span-12 lg:col-span-7 grid grid-cols-2 gap-4 content-start">
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col items-center">
-            <p className="text-white/40 uppercase tracking-widest text-xs mb-2 font-medium">Apparent Wind Speed</p>
-            <GaugeRing value={aws ?? 0} min={0} max={50} unit="kn" label="AWS" size={160} color="#22d3ee" />
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col items-center">
-            <p className="text-white/40 uppercase tracking-widest text-xs mb-2 font-medium">True Wind Speed</p>
-            <GaugeRing value={tws ?? 0} min={0} max={50} unit="kn" label="TWS" size={160} color="rgba(34,211,238,0.6)" />
-          </div>
-
-          <DataTile
-            label="Apparent Wind Angle"
-            value={awa != null ? fmt(awa, 0) : "--"}
-            unit="°"
-            size="md"
-            color="#22d3ee"
-            subValue={awa != null ? getWindDescription(awa) : undefined}
-          />
-          <DataTile
-            label="True Wind Angle"
-            value={twa != null ? fmt(twa, 0) : "--"}
-            unit="°"
-            size="md"
-            color="rgba(34,211,238,0.7)"
-            subValue={twa != null ? getWindDescription(twa) : undefined}
-          />
-
-          <DataTile
-            label="Upwind VMG"
-            value={tws != null && twa != null
-              ? fmt(tws * Math.abs(Math.cos((twa * Math.PI) / 180)))
-              : "--"}
-            unit="kn"
-            size="sm"
-            color="#a78bfa"
-          />
-          <DataTile
-            label="Crosswind"
-            value={tws != null && twa != null
-              ? fmt(Math.abs(tws * Math.sin((twa * Math.PI) / 180)))
-              : "--"}
-            unit="kn"
-            size="sm"
-            color="#f59e0b"
-          />
         </div>
       </div>
     </div>

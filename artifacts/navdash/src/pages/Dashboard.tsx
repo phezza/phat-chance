@@ -4,6 +4,8 @@ import { DataTile } from "@/components/DataTile";
 import { CompassRose } from "@/components/CompassRose";
 import { GaugeRing } from "@/components/GaugeRing";
 import { WindRose } from "@/components/WindRose";
+import { PageHeader } from "@/components/PageHeader";
+import { LayoutDashboard } from "lucide-react";
 
 function fmt(val: number | undefined, decimals = 1, fallback = "--"): string {
   if (val == null || !Number.isFinite(val)) return fallback;
@@ -24,7 +26,9 @@ export function Dashboard() {
   const depth = nav.depthBelowKeel ?? nav.depthBelowSurface;
 
   return (
-    <div className="flex flex-col gap-4 p-4 h-full" data-testid="dashboard-page">
+    <div className="flex flex-col h-full" data-testid="dashboard-page">
+      <PageHeader title="Dashboard" icon={LayoutDashboard} />
+      <div className="flex flex-col gap-4 p-4 flex-1 min-h-0">
       <div className="grid grid-cols-12 gap-4 flex-1">
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-4">
           <div className="flex flex-col items-center justify-center bg-white/5 border border-white/10 rounded-2xl p-4">
@@ -204,6 +208,7 @@ export function Dashboard() {
             />
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
