@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useSK } from "@/lib/SignalKContext";
 import { SignalKConfig, ConnectionMode } from "@/lib/signalk";
-import { Wifi, WifiOff, Save, RotateCcw, Radio, Server, Anchor, Settings as SettingsIcon } from "lucide-react";
+import { Wifi, WifiOff, Save, RotateCcw, Radio, Server, Anchor, Settings as SettingsIcon, Sun } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
+import { useWakeLock } from "@/lib/useWakeLock";
 
 export function Settings() {
   const { config, updateConfig, status, connect, disconnect, nav, aisTargets, rawState, nmeaLog } = useSK();
+  const wakeLock = useWakeLock();
   const [form, setForm] = useState<SignalKConfig>({ ...config });
   const [saved, setSaved] = useState(false);
 
@@ -193,6 +195,42 @@ export function Settings() {
             </button>
           )}
         </div>
+      </div>
+
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+        <h2 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+          <Sun className="w-5 h-5 text-amber-400" />
+          Display
+        </h2>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={wakeLock.enabled}
+            onChange={wakeLock.toggle}
+            disabled={!wakeLock.supported}
+            className="mt-1 rounded"
+            data-testid="input-wake-lock"
+          />
+          <div className="flex-1">
+            <div className="text-white text-sm font-medium flex items-center gap-2">
+              Keep screen on while dashboard is open
+              {wakeLock.enabled && wakeLock.active && (
+                <span className="text-emerald-400 text-xs font-normal">● active</span>
+              )}
+              {wakeLock.enabled && !wakeLock.active && wakeLock.supported && (
+                <span className="text-amber-400 text-xs font-normal">waiting for tab focus</span>
+              )}
+            </div>
+            <div className="text-white/40 text-xs mt-1">
+              {wakeLock.supported
+                ? "Prevents the device from sleeping while this tab is visible. Useful when the tablet is mounted as a chartplotter."
+                : "Your browser doesn't support the Wake Lock API. On Android, use Chrome. On iOS 16.4+, use Safari."}
+            </div>
+            {wakeLock.error && (
+              <div className="text-red-400/70 text-xs mt-1">Wake lock error: {wakeLock.error}</div>
+            )}
+          </div>
+        </label>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
