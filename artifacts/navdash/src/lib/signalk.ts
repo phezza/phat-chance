@@ -68,12 +68,12 @@ export interface NavigationData {
 export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
 
 const DEFAULT_CONFIG: SignalKConfig = {
-  mode: "signalk",
-  host: "192.168.1.1",
+  mode: "nmea-tcp",
+  host: "192.168.1.47",
   port: 3000,
   useTLS: false,
-  nmeaHost: "192.168.1.1",
-  nmeaPort: 10110,
+  nmeaHost: "192.168.1.47",
+  nmeaPort: 2000,
 };
 
 const CONFIG_KEY = "navdash_signalk_config";
