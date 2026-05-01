@@ -26,8 +26,15 @@ if (!basePath) {
   );
 }
 
+const buildId = process.env.BUILD_ID ?? String(Date.now());
+const buildTime = new Date().toISOString();
+
 export default defineConfig({
   base: basePath,
+  define: {
+    __BUILD_ID__: JSON.stringify(buildId),
+    __BUILD_TIME__: JSON.stringify(buildTime),
+  },
   plugins: [
     react(),
     tailwindcss(),

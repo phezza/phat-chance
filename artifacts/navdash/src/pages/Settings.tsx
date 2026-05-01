@@ -32,10 +32,18 @@ export function Settings() {
 
   const statusColor = { connected: "#22d3ee", connecting: "#f59e0b", disconnected: "rgba(255,255,255,0.4)", error: "#ef4444" }[status];
 
+  const buildId = typeof __BUILD_ID__ !== "undefined" ? __BUILD_ID__ : "dev";
+  const buildTime = typeof __BUILD_TIME__ !== "undefined" ? __BUILD_TIME__ : "";
+  const buildShort = buildId.length > 6 ? buildId.slice(-6) : buildId;
+  const buildDate = buildTime ? new Date(buildTime).toLocaleString() : "";
+
   return (
     <div className="flex flex-col" data-testid="settings-page">
       <PageHeader title="Settings" icon={SettingsIcon} />
       <div className="flex flex-col gap-6 p-4 max-w-3xl mx-auto">
+      <div className="text-[10px] uppercase tracking-widest text-white/30 -mb-3 font-mono" data-testid="build-info">
+        Build {buildShort} · {buildDate}
+      </div>
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
         <h2 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
           <Wifi className="w-5 h-5 text-cyan-400" />
