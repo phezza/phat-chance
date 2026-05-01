@@ -15,6 +15,12 @@
     "typescript": "~5.9.2",
     "prettier": "^3.8.1"
   },
+  "optionalDependencies": {
+    "@rollup/rollup-android-arm64": "4.59.0",
+    "@esbuild/android-arm64": "0.27.3",
+    "lightningcss-android-arm64": "1.31.1",
+    "@tailwindcss/oxide-android-arm64": "4.2.1"
+  },
   "pnpm": {
     "supportedArchitectures": {
       "os": ["current", "linux", "darwin", "win32", "android"],
