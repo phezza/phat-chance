@@ -5,9 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
 
 export interface TrackPositionUpdate {
   /**
@@ -40,23 +37,3 @@ export interface TrackPositionUpdate {
   windAngleApparent?: number | null;
   note?: string | null;
 }
-
-export type TrackPosition = TrackPositionUpdate & {
-  id: number;
-  vesselId: string;
-  recordedAt: string;
-};
-
-export type GetTrackHistoryParams = {
-  /**
-   * Return points recorded in the last N minutes (default 12 hours, max 7 days)
-   * @minimum 1
-   * @maximum 10080
-   */
-  sinceMinutes?: number;
-  /**
-   * @minimum 1
-   * @maximum 5000
-   */
-  limit?: number;
-};

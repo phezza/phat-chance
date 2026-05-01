@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: tracking
+    description: Vessel tracking and position sharing
 paths:
   /healthz:
     get:
@@ -24,7 +26,97 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /track/{vesselId}:
+    post:
+      operationId: postTrackPosition
+      tags: [tracking]
+      summary: Submit a vessel position update
+      description: Vessel-mounted clients POST live position + telemetry. Requires Bearer token.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: vesselId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrackPositionUpdate"
+      responses:
+        "201":
+          description: Stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackPosition"
+        "401":
+          description: Unauthorised
+        "400":
+          description: Invalid payload
+  /track/{vesselId}/latest:
+    get:
+      operationId: getTrackLatest
+      tags: [tracking]
+      summary: Latest known position for a vessel
+      parameters:
+        - in: path
+          name: vesselId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Latest position
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackPosition"
+        "404":
+          description: No data for this vessel
+  /track/{vesselId}/history:
+    get:
+      operationId: getTrackHistory
+      tags: [tracking]
+      summary: Position history for a vessel
+      parameters:
+        - in: path
+          name: vesselId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: sinceMinutes
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10080
+            default: 720
+          description: Return points recorded in the last N minutes (default 12 hours, max 7 days)
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5000
+            default: 1000
+      responses:
+        "200":
+          description: Position history (oldest first)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TrackPosition"
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +125,74 @@ components:
           type: string
       required:
         - status
-
+    TrackPositionUpdate:
+      type: object
+      required:
+        - latitude
+        - longitude
+      properties:
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+        speedOverGround:
+          type: number
+          nullable: true
+          description: Metres per second
+        courseOverGround:
+          type: number
+          nullable: true
+          description: Radians, true
+        headingTrue:
+          type: number
+          nullable: true
+          description: Radians
+        headingMagnetic:
+          type: number
+          nullable: true
+          description: Radians
+        depth:
+          type: number
+          nullable: true
+          description: Metres
+        waterTemperature:
+          type: number
+          nullable: true
+          description: Kelvin
+        windSpeedTrue:
+          type: number
+          nullable: true
+          description: Metres per second
+        windAngleTrue:
+          type: number
+          nullable: true
+          description: Radians
+        windSpeedApparent:
+          type: number
+          nullable: true
+        windAngleApparent:
+          type: number
+          nullable: true
+        note:
+          type: string
+          nullable: true
+    TrackPosition:
+      allOf:
+        - $ref: "#/components/schemas/TrackPositionUpdate"
+        - type: object
+          required:
+            - id
+            - vesselId
+            - recordedAt
+          properties:
+            id:
+              type: integer
+            vesselId:
+              type: string
+            recordedAt:
+              type: string
+              format: date-time

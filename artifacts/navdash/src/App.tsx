@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SignalKProvider } from "@/lib/SignalKContext";
+import { UplinkProvider } from "@/lib/UplinkContext";
 import { StatusBar } from "@/components/StatusBar";
 import { Dashboard } from "@/pages/Dashboard";
 import { Navigation } from "@/pages/Navigation";
@@ -12,6 +13,7 @@ import { AIS } from "@/pages/AIS";
 import { Instruments } from "@/pages/Instruments";
 import { Settings } from "@/pages/Settings";
 import { Tracking } from "@/pages/Tracking";
+import { Track } from "@/pages/Track";
 import { Autopilot } from "@/pages/Autopilot";
 import { cn } from "@/lib/utils";
 import {
@@ -248,12 +250,19 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <SignalKProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <AppShell />
-          </WouterRouter>
-          <Toaster />
-        </SignalKProvider>
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <Switch>
+            <Route path="/track/:vesselId" component={Track} />
+            <Route>
+              <SignalKProvider>
+                <UplinkProvider>
+                  <AppShell />
+                  <Toaster />
+                </UplinkProvider>
+              </SignalKProvider>
+            </Route>
+          </Switch>
+        </WouterRouter>
       </TooltipProvider>
     </QueryClientProvider>
   );

@@ -1,16 +1,29 @@
 import { useState } from "react";
 import { useSK } from "@/lib/SignalKContext";
+import { useUplink } from "@/lib/UplinkContext";
 import { SignalKConfig, ConnectionMode } from "@/lib/signalk";
-import { Wifi, WifiOff, Save, RotateCcw, Radio, Server, Anchor, Settings as SettingsIcon, Sun } from "lucide-react";
+import { Wifi, WifiOff, Save, RotateCcw, Radio, Server, Anchor, Settings as SettingsIcon, Sun, Share2, ExternalLink } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
 import { useWakeLock } from "@/lib/useWakeLock";
+import type { UplinkConfig } from "@/lib/usePositionUplink";
 
 export function Settings() {
   const { config, updateConfig, status, connect, disconnect, nav, aisTargets, rawState, nmeaLog, parseStats } = useSK();
   const wakeLock = useWakeLock();
   const [form, setForm] = useState<SignalKConfig>({ ...config });
   const [saved, setSaved] = useState(false);
+  const uplink = useUplink();
+  const [uplinkForm, setUplinkForm] = useState<UplinkConfig>({ ...uplink.config });
+  const [uplinkSaved, setUplinkSaved] = useState(false);
+  const handleUplinkSave = () => {
+    uplink.updateConfig(uplinkForm);
+    setUplinkSaved(true);
+    setTimeout(() => setUplinkSaved(false), 2000);
+  };
+  const trackerUrl = uplinkForm.baseUrl && uplinkForm.vesselId
+    ? `${uplinkForm.baseUrl.replace(/\/$/, "")}/track/${encodeURIComponent(uplinkForm.vesselId)}`
+    : "";
 
   const handleSave = () => {
     updateConfig(form);
@@ -374,6 +387,137 @@ export function Settings() {
           </div>
         </div>
       )}
+
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+        <h2 className="text-white font-bold text-lg mb-2 flex items-center gap-2">
+          <Share2 className="w-5 h-5 text-cyan-400" />
+          Position Sharing
+        </h2>
+        <p className="text-white/50 text-sm mb-5">
+          When enabled, this tablet uploads the boat's live position to a cloud server every few seconds.
+          Anyone with the tracker link can then see where the boat is, from anywhere.
+        </p>
+
+        <label className="flex items-center gap-3 mb-5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={uplinkForm.enabled}
+            onChange={(e) => setUplinkForm({ ...uplinkForm, enabled: e.target.checked })}
+            className="w-5 h-5 accent-cyan-400"
+            data-testid="uplink-enabled"
+          />
+          <div>
+            <div className="text-white text-sm font-medium">Share my position</div>
+            <div className="text-white/40 text-xs">Requires the tablet to have internet (e.g. boat 4G or Starlink).</div>
+          </div>
+        </label>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+          <div>
+            <label className="text-white/40 uppercase tracking-widest text-xs block mb-2">Cloud Server URL</label>
+            <input
+              type="url"
+              placeholder="https://your-deployment.replit.app"
+              value={uplinkForm.baseUrl}
+              onChange={(e) => setUplinkForm({ ...uplinkForm, baseUrl: e.target.value })}
+              className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono"
+              data-testid="uplink-baseurl"
+            />
+            <div className="text-white/30 text-[11px] mt-1">The deployed NavDash URL (no trailing path).</div>
+          </div>
+          <div>
+            <label className="text-white/40 uppercase tracking-widest text-xs block mb-2">Vessel ID</label>
+            <input
+              type="text"
+              value={uplinkForm.vesselId}
+              onChange={(e) => setUplinkForm({ ...uplinkForm, vesselId: e.target.value.replace(/[^a-zA-Z0-9_-]/g, "") })}
+              className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono"
+              data-testid="uplink-vesselid"
+            />
+            <div className="text-white/30 text-[11px] mt-1">Letters, numbers, hyphens. Becomes part of the tracker URL.</div>
+          </div>
+          <div>
+            <label className="text-white/40 uppercase tracking-widest text-xs block mb-2">Write Token</label>
+            <input
+              type="password"
+              placeholder="Set TRACK_WRITE_TOKEN on the server, paste here"
+              value={uplinkForm.token}
+              onChange={(e) => setUplinkForm({ ...uplinkForm, token: e.target.value })}
+              className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono"
+              data-testid="uplink-token"
+            />
+          </div>
+          <div>
+            <label className="text-white/40 uppercase tracking-widest text-xs block mb-2">Update Interval (seconds)</label>
+            <input
+              type="number"
+              min={10}
+              max={3600}
+              value={uplinkForm.intervalSeconds}
+              onChange={(e) => setUplinkForm({ ...uplinkForm, intervalSeconds: Math.max(10, Math.min(3600, parseInt(e.target.value) || 60)) })}
+              className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono"
+              data-testid="uplink-interval"
+            />
+            <div className="text-white/30 text-[11px] mt-1">60s is a good default. Lower = more bandwidth.</div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-3 mb-5">
+          <button
+            onClick={handleUplinkSave}
+            className="px-4 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-100 text-sm font-medium flex items-center gap-2"
+            data-testid="uplink-save"
+          >
+            <Save className="w-4 h-4" />
+            {uplinkSaved ? "Saved" : "Save Settings"}
+          </button>
+          {trackerUrl && (
+            <a
+              href={trackerUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-medium flex items-center gap-2"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Open tracker
+            </a>
+          )}
+        </div>
+
+        <div className="bg-black/30 border border-white/5 rounded-xl p-4 text-sm">
+          <div className="text-white/40 uppercase tracking-widest text-[11px] mb-2">Status</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <div className="text-white/40 text-[11px]">Successful</div>
+              <div className="text-cyan-300 font-mono">{uplink.status.successCount}</div>
+            </div>
+            <div>
+              <div className="text-white/40 text-[11px]">Errors</div>
+              <div className={uplink.status.errorCount > 0 ? "text-red-400 font-mono" : "text-white/60 font-mono"}>{uplink.status.errorCount}</div>
+            </div>
+            <div>
+              <div className="text-white/40 text-[11px]">Last upload</div>
+              <div className="text-white/80 font-mono text-xs">{uplink.status.lastSuccess ? uplink.status.lastSuccess.toLocaleTimeString() : "—"}</div>
+            </div>
+            <div>
+              <div className="text-white/40 text-[11px]">Last attempt</div>
+              <div className="text-white/80 font-mono text-xs">{uplink.status.lastAttempt ? uplink.status.lastAttempt.toLocaleTimeString() : "—"}</div>
+            </div>
+          </div>
+          {uplink.status.lastError && (
+            <div className="mt-3 text-red-300 text-xs font-mono break-all">
+              {uplink.status.lastError}
+            </div>
+          )}
+          {!uplinkForm.enabled && (
+            <div className="mt-3 text-white/40 text-xs">Sharing is currently off.</div>
+          )}
+          {uplinkForm.enabled && !nav.position && (
+            <div className="mt-3 text-amber-300 text-xs">Waiting for a GPS fix before uploading.</div>
+          )}
+        </div>
+      </div>
+
     </div>
     </div>
   );

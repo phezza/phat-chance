@@ -6,4 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./getTrackHistoryParams";
 export * from "./healthStatus";
+export * from "./trackPosition";
+export * from "./trackPositionUpdate";

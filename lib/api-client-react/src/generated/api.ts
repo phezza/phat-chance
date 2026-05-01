@@ -5,18 +5,26 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  GetTrackHistoryParams,
+  HealthStatus,
+  TrackPosition,
+  TrackPositionUpdate,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -92,6 +100,298 @@ export function useHealthCheck<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getHealthCheckQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Vessel-mounted clients POST live position + telemetry. Requires Bearer token.
+ * @summary Submit a vessel position update
+ */
+export const getPostTrackPositionUrl = (vesselId: string) => {
+  return `/api/track/${vesselId}`;
+};
+
+export const postTrackPosition = async (
+  vesselId: string,
+  trackPositionUpdate: TrackPositionUpdate,
+  options?: RequestInit,
+): Promise<TrackPosition> => {
+  return customFetch<TrackPosition>(getPostTrackPositionUrl(vesselId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(trackPositionUpdate),
+  });
+};
+
+export const getPostTrackPositionMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postTrackPosition>>,
+    TError,
+    { vesselId: string; data: BodyType<TrackPositionUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof postTrackPosition>>,
+  TError,
+  { vesselId: string; data: BodyType<TrackPositionUpdate> },
+  TContext
+> => {
+  const mutationKey = ["postTrackPosition"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof postTrackPosition>>,
+    { vesselId: string; data: BodyType<TrackPositionUpdate> }
+  > = (props) => {
+    const { vesselId, data } = props ?? {};
+
+    return postTrackPosition(vesselId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PostTrackPositionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof postTrackPosition>>
+>;
+export type PostTrackPositionMutationBody = BodyType<TrackPositionUpdate>;
+export type PostTrackPositionMutationError = ErrorType<void>;
+
+/**
+ * @summary Submit a vessel position update
+ */
+export const usePostTrackPosition = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postTrackPosition>>,
+    TError,
+    { vesselId: string; data: BodyType<TrackPositionUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof postTrackPosition>>,
+  TError,
+  { vesselId: string; data: BodyType<TrackPositionUpdate> },
+  TContext
+> => {
+  return useMutation(getPostTrackPositionMutationOptions(options));
+};
+
+/**
+ * @summary Latest known position for a vessel
+ */
+export const getGetTrackLatestUrl = (vesselId: string) => {
+  return `/api/track/${vesselId}/latest`;
+};
+
+export const getTrackLatest = async (
+  vesselId: string,
+  options?: RequestInit,
+): Promise<TrackPosition> => {
+  return customFetch<TrackPosition>(getGetTrackLatestUrl(vesselId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTrackLatestQueryKey = (vesselId: string) => {
+  return [`/api/track/${vesselId}/latest`] as const;
+};
+
+export const getGetTrackLatestQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTrackLatest>>,
+  TError = ErrorType<void>,
+>(
+  vesselId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTrackLatest>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetTrackLatestQueryKey(vesselId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTrackLatest>>> = ({
+    signal,
+  }) => getTrackLatest(vesselId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!vesselId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTrackLatest>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTrackLatestQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTrackLatest>>
+>;
+export type GetTrackLatestQueryError = ErrorType<void>;
+
+/**
+ * @summary Latest known position for a vessel
+ */
+
+export function useGetTrackLatest<
+  TData = Awaited<ReturnType<typeof getTrackLatest>>,
+  TError = ErrorType<void>,
+>(
+  vesselId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTrackLatest>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTrackLatestQueryOptions(vesselId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Position history for a vessel
+ */
+export const getGetTrackHistoryUrl = (
+  vesselId: string,
+  params?: GetTrackHistoryParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/track/${vesselId}/history?${stringifiedParams}`
+    : `/api/track/${vesselId}/history`;
+};
+
+export const getTrackHistory = async (
+  vesselId: string,
+  params?: GetTrackHistoryParams,
+  options?: RequestInit,
+): Promise<TrackPosition[]> => {
+  return customFetch<TrackPosition[]>(getGetTrackHistoryUrl(vesselId, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTrackHistoryQueryKey = (
+  vesselId: string,
+  params?: GetTrackHistoryParams,
+) => {
+  return [
+    `/api/track/${vesselId}/history`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetTrackHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTrackHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  vesselId: string,
+  params?: GetTrackHistoryParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTrackHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetTrackHistoryQueryKey(vesselId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTrackHistory>>> = ({
+    signal,
+  }) => getTrackHistory(vesselId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!vesselId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTrackHistory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTrackHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTrackHistory>>
+>;
+export type GetTrackHistoryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Position history for a vessel
+ */
+
+export function useGetTrackHistory<
+  TData = Awaited<ReturnType<typeof getTrackHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  vesselId: string,
+  params?: GetTrackHistoryParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTrackHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTrackHistoryQueryOptions(
+    vesselId,
+    params,
+    options,
+  );
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

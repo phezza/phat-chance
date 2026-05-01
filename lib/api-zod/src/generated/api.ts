@@ -14,3 +14,148 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Vessel-mounted clients POST live position + telemetry. Requires Bearer token.
+ * @summary Submit a vessel position update
+ */
+export const PostTrackPositionParams = zod.object({
+  vesselId: zod.coerce.string(),
+});
+
+export const postTrackPositionBodyLatitudeMin = -90;
+export const postTrackPositionBodyLatitudeMax = 90;
+
+export const postTrackPositionBodyLongitudeMin = -180;
+export const postTrackPositionBodyLongitudeMax = 180;
+
+export const PostTrackPositionBody = zod.object({
+  latitude: zod
+    .number()
+    .min(postTrackPositionBodyLatitudeMin)
+    .max(postTrackPositionBodyLatitudeMax),
+  longitude: zod
+    .number()
+    .min(postTrackPositionBodyLongitudeMin)
+    .max(postTrackPositionBodyLongitudeMax),
+  speedOverGround: zod.number().nullish().describe("Metres per second"),
+  courseOverGround: zod.number().nullish().describe("Radians, true"),
+  headingTrue: zod.number().nullish().describe("Radians"),
+  headingMagnetic: zod.number().nullish().describe("Radians"),
+  depth: zod.number().nullish().describe("Metres"),
+  waterTemperature: zod.number().nullish().describe("Kelvin"),
+  windSpeedTrue: zod.number().nullish().describe("Metres per second"),
+  windAngleTrue: zod.number().nullish().describe("Radians"),
+  windSpeedApparent: zod.number().nullish(),
+  windAngleApparent: zod.number().nullish(),
+  note: zod.string().nullish(),
+});
+
+/**
+ * @summary Latest known position for a vessel
+ */
+export const GetTrackLatestParams = zod.object({
+  vesselId: zod.coerce.string(),
+});
+
+export const getTrackLatestResponseOneLatitudeMin = -90;
+export const getTrackLatestResponseOneLatitudeMax = 90;
+
+export const getTrackLatestResponseOneLongitudeMin = -180;
+export const getTrackLatestResponseOneLongitudeMax = 180;
+
+export const GetTrackLatestResponse = zod
+  .object({
+    latitude: zod
+      .number()
+      .min(getTrackLatestResponseOneLatitudeMin)
+      .max(getTrackLatestResponseOneLatitudeMax),
+    longitude: zod
+      .number()
+      .min(getTrackLatestResponseOneLongitudeMin)
+      .max(getTrackLatestResponseOneLongitudeMax),
+    speedOverGround: zod.number().nullish().describe("Metres per second"),
+    courseOverGround: zod.number().nullish().describe("Radians, true"),
+    headingTrue: zod.number().nullish().describe("Radians"),
+    headingMagnetic: zod.number().nullish().describe("Radians"),
+    depth: zod.number().nullish().describe("Metres"),
+    waterTemperature: zod.number().nullish().describe("Kelvin"),
+    windSpeedTrue: zod.number().nullish().describe("Metres per second"),
+    windAngleTrue: zod.number().nullish().describe("Radians"),
+    windSpeedApparent: zod.number().nullish(),
+    windAngleApparent: zod.number().nullish(),
+    note: zod.string().nullish(),
+  })
+  .and(
+    zod.object({
+      id: zod.number(),
+      vesselId: zod.string(),
+      recordedAt: zod.coerce.date(),
+    }),
+  );
+
+/**
+ * @summary Position history for a vessel
+ */
+export const GetTrackHistoryParams = zod.object({
+  vesselId: zod.coerce.string(),
+});
+
+export const getTrackHistoryQuerySinceMinutesDefault = 720;
+export const getTrackHistoryQuerySinceMinutesMax = 10080;
+
+export const getTrackHistoryQueryLimitDefault = 1000;
+export const getTrackHistoryQueryLimitMax = 5000;
+
+export const GetTrackHistoryQueryParams = zod.object({
+  sinceMinutes: zod.coerce
+    .number()
+    .min(1)
+    .max(getTrackHistoryQuerySinceMinutesMax)
+    .default(getTrackHistoryQuerySinceMinutesDefault)
+    .describe(
+      "Return points recorded in the last N minutes (default 12 hours, max 7 days)",
+    ),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(getTrackHistoryQueryLimitMax)
+    .default(getTrackHistoryQueryLimitDefault),
+});
+
+export const getTrackHistoryResponseOneLatitudeMin = -90;
+export const getTrackHistoryResponseOneLatitudeMax = 90;
+
+export const getTrackHistoryResponseOneLongitudeMin = -180;
+export const getTrackHistoryResponseOneLongitudeMax = 180;
+
+export const GetTrackHistoryResponseItem = zod
+  .object({
+    latitude: zod
+      .number()
+      .min(getTrackHistoryResponseOneLatitudeMin)
+      .max(getTrackHistoryResponseOneLatitudeMax),
+    longitude: zod
+      .number()
+      .min(getTrackHistoryResponseOneLongitudeMin)
+      .max(getTrackHistoryResponseOneLongitudeMax),
+    speedOverGround: zod.number().nullish().describe("Metres per second"),
+    courseOverGround: zod.number().nullish().describe("Radians, true"),
+    headingTrue: zod.number().nullish().describe("Radians"),
+    headingMagnetic: zod.number().nullish().describe("Radians"),
+    depth: zod.number().nullish().describe("Metres"),
+    waterTemperature: zod.number().nullish().describe("Kelvin"),
+    windSpeedTrue: zod.number().nullish().describe("Metres per second"),
+    windAngleTrue: zod.number().nullish().describe("Radians"),
+    windSpeedApparent: zod.number().nullish(),
+    windAngleApparent: zod.number().nullish(),
+    note: zod.string().nullish(),
+  })
+  .and(
+    zod.object({
+      id: zod.number(),
+      vesselId: zod.string(),
+      recordedAt: zod.coerce.date(),
+    }),
+  );
+export const GetTrackHistoryResponse = zod.array(GetTrackHistoryResponseItem);
