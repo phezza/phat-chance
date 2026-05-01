@@ -216,7 +216,111 @@ export function parseNMEASentence(sentence: string): NMEAParseResult | null {
       return { raw: s };
     }
 
+    case "RSA": {
+      // Rudder Sensor Angle. parts[1] = starboard rudder angle (deg),
+      // parts[2] = status A/V, parts[3] = port rudder angle, parts[4] = status.
+      // Positive = bow turning to starboard.
+      const angleStarboard = parseFloat(parts[1]);
+      const statusS = parts[2];
+      const angleStrip = (s: string | undefined) => parseFloat((s ?? "").replace(/\*.*/, ""));
+      const anglePort = angleStrip(parts[3]);
+      const statusP = parts[4]?.replace(/\*.*/, "").trim();
+      let chosen: number | undefined;
+      if (!isNaN(angleStarboard) && (statusS === "A" || !statusS)) chosen = angleStarboard;
+      else if (!isNaN(anglePort) && (statusP === "A" || !statusP)) chosen = anglePort;
+      if (chosen === undefined) return { raw: s };
+      return { nav: { rudderAngle: degToRad(chosen) }, raw: s };
+    }
+
+    case "MDA": {
+      // Meteorological Composite. Many fields; pick the useful ones.
+      // 1: pressure inches Hg, 2: "I", 3: pressure bars, 4: "B"
+      // 5: air temp C, 6: "C", 7: water temp C, 8: "C"
+      // 9: relative humidity %, 10: absolute humidity %, 11: dew point C, 12: "C"
+      // 13: wind dir true, 14: "T", 15: wind dir mag, 16: "M"
+      // 17: wind speed kn, 18: "N", 19: wind speed m/s, 20: "M"
+      const pressureBar = parseFloat(parts[3]);
+      const airTempC = parseFloat(parts[5]);
+      const waterTempC = parseFloat(parts[7]);
+      const humidity = parseFloat(parts[9]);
+      const dewPointC = parseFloat(parts[11]);
+      const windDirTrue = parseFloat(parts[13]);
+      const windSpeedMs = parseFloat(parts[19]);
+      const windSpeedKn = parseFloat(parts[17]);
+      const result: Partial<NavigationData> = {};
+      if (!isNaN(pressureBar)) result.atmosphericPressure = pressureBar * 100000; // bar -> Pa
+      if (!isNaN(airTempC)) result.airTemperature = airTempC + 273.15;
+      if (!isNaN(waterTempC)) result.waterTemperature = waterTempC + 273.15;
+      if (!isNaN(humidity)) result.humidityRelative = humidity;
+      if (!isNaN(dewPointC)) result.dewPoint = dewPointC + 273.15;
+      if (!isNaN(windDirTrue)) result.windAngleTrue = degToRad(windDirTrue);
+      if (!isNaN(windSpeedMs)) result.windSpeedTrue = windSpeedMs;
+      else if (!isNaN(windSpeedKn)) result.windSpeedTrue = knotsToMps(windSpeedKn);
+      return Object.keys(result).length ? { nav: result, raw: s } : { raw: s };
+    }
+
+    case "VDR": {
+      // Set and Drift (current). 1: set true (deg), 2: T, 3: set mag (deg), 4: M,
+      // 5: drift speed (kn), 6: N
+      const setTrue = parseFloat(parts[1]);
+      const driftKn = parseFloat((parts[5] ?? "").replace(/\*.*/, ""));
+      const result: Partial<NavigationData> = {};
+      if (!isNaN(setTrue)) result.currentSet = degToRad(setTrue);
+      if (!isNaN(driftKn)) result.currentDrift = knotsToMps(driftKn);
+      return Object.keys(result).length ? { nav: result, raw: s } : { raw: s };
+    }
+
+    case "ZDA": {
+      // Time and date. 1: hhmmss.ss UTC, 2: day, 3: month, 4: year, 5: tz hr, 6: tz min
+      const hhmmss = parts[1];
+      const day = parseInt(parts[2]);
+      const month = parseInt(parts[3]);
+      const year = parseInt(parts[4]);
+      if (!hhmmss || isNaN(day) || isNaN(month) || isNaN(year)) return { raw: s };
+      const hh = hhmmss.substring(0, 2);
+      const mm = hhmmss.substring(2, 4);
+      const ss = hhmmss.substring(4);
+      const iso = `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}T${hh}:${mm}:${ss}Z`;
+      return { nav: { gpsTimeUTC: iso }, raw: s };
+    }
+
+    case "GSA": {
+      // GPS DOP and active satellites. 1: mode (M/A), 2: fix type (1/2/3), 3-14: PRNs,
+      // 15: PDOP, 16: HDOP, 17: VDOP
+      const fixType = parseInt(parts[2]);
+      const pdop = parseFloat(parts[15]);
+      const hdop = parseFloat(parts[16]);
+      const vdop = parseFloat((parts[17] ?? "").replace(/\*.*/, ""));
+      const result: Partial<NavigationData> = {};
+      if (fixType === 1) result.gpsFixType = "none";
+      else if (fixType === 2) result.gpsFixType = "2D";
+      else if (fixType === 3) result.gpsFixType = "3D";
+      if (!isNaN(pdop)) result.gpsPdop = pdop;
+      if (!isNaN(hdop)) result.gpsHdop = hdop;
+      if (!isNaN(vdop)) result.gpsVdop = vdop;
+      // Count active satellite PRNs in fields 3..14
+      let used = 0;
+      for (let i = 3; i <= 14; i++) {
+        if (parts[i] && parts[i].length > 0) used++;
+      }
+      if (used > 0) result.gpsSatellitesUsed = used;
+      return Object.keys(result).length ? { nav: result, raw: s } : { raw: s };
+    }
+
+    case "GSV": {
+      // Satellites in View. 1: total messages, 2: msg num, 3: total satellites in view
+      const totalSats = parseInt(parts[3]);
+      if (isNaN(totalSats)) return { raw: s };
+      return { nav: { gpsSatellitesInView: totalSats }, raw: s };
+    }
+
     default:
+      // Recognise but do not parse some common proprietary sentences so the
+      // diagnostics view shows them as "received but intentionally ignored".
+      // PDGY = Digital Yacht status, PRDID = various, etc.
+      if (sentenceId === "DGY" || tag.startsWith("P")) {
+        return { raw: s };
+      }
       return null;
   }
 }

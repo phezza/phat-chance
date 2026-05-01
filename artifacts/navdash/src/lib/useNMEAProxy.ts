@@ -25,6 +25,7 @@ export interface NMEALogEntry {
 const KNOWN_SENTENCES = new Set([
   "RMC", "GGA", "GLL", "VTG", "HDG", "HDM", "HDT", "MWV", "MWD",
   "VHW", "DBT", "DBS", "DBK", "DPT", "MTW", "VLW", "VDM", "VDO",
+  "RSA", "MDA", "VDR", "ZDA", "GSA", "GSV",
 ]);
 
 export function useNMEAProxy(config: SignalKConfig) {

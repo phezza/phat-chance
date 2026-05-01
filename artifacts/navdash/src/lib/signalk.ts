@@ -63,6 +63,20 @@ export interface NavigationData {
   magneticVariation?: number;
   logTrip?: number;
   logTotal?: number;
+  rudderAngle?: number;
+  airTemperature?: number;
+  atmosphericPressure?: number;
+  humidityRelative?: number;
+  dewPoint?: number;
+  currentSet?: number;
+  currentDrift?: number;
+  gpsTimeUTC?: string;
+  gpsHdop?: number;
+  gpsPdop?: number;
+  gpsVdop?: number;
+  gpsFixType?: "none" | "2D" | "3D";
+  gpsSatellitesUsed?: number;
+  gpsSatellitesInView?: number;
 }
 
 export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";

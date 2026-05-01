@@ -22,6 +22,12 @@ export function Instruments() {
   const depth = nav.depthBelowKeel ?? nav.depthBelowSurface;
   const depthFt = depth != null ? metersToFeet(depth) : undefined;
   const waterTempC = nav.waterTemperature != null ? nav.waterTemperature - 273.15 : undefined;
+  const airTempC = nav.airTemperature != null ? nav.airTemperature - 273.15 : undefined;
+  const dewPointC = nav.dewPoint != null ? nav.dewPoint - 273.15 : undefined;
+  const pressureHpa = nav.atmosphericPressure != null ? nav.atmosphericPressure / 100 : undefined;
+  const rudderDeg = nav.rudderAngle != null ? radToDeg(nav.rudderAngle) : undefined;
+  const currentSetDeg = nav.currentSet != null ? radToDeg(nav.currentSet) : undefined;
+  const currentDriftKn = nav.currentDrift != null ? mpsToKnots(nav.currentDrift) : undefined;
 
   const instruments = [
     {
@@ -93,6 +99,71 @@ export function Instruments() {
             size="md"
             color={nav.autopilotState === "auto" ? "#22d3ee" : nav.autopilotState === "standby" ? "#f59e0b" : "rgba(255,255,255,0.3)"}
             subValue={nav.autopilotTargetHeading != null ? `Target: ${radToDeg(nav.autopilotTargetHeading).toFixed(0)}°` : undefined}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+          <DataTile
+            label="Rudder"
+            value={rudderDeg != null ? Math.abs(rudderDeg).toFixed(0) : "--"}
+            unit="°"
+            size="md"
+            color="#a78bfa"
+            subValue={rudderDeg != null ? (rudderDeg > 0.5 ? "Stbd" : rudderDeg < -0.5 ? "Port" : "Centre") : undefined}
+          />
+          <DataTile
+            label="Air Temp"
+            value={airTempC != null ? fmt(airTempC, 1) : "--"}
+            unit="°C"
+            size="md"
+            color="#f59e0b"
+            subValue={dewPointC != null ? `Dew ${dewPointC.toFixed(0)}°C` : undefined}
+          />
+          <DataTile
+            label="Pressure"
+            value={pressureHpa != null ? fmt(pressureHpa, 0) : "--"}
+            unit="hPa"
+            size="md"
+            color="#22d3ee"
+            subValue={nav.humidityRelative != null ? `${nav.humidityRelative.toFixed(0)}% RH` : undefined}
+          />
+          <DataTile
+            label="Current"
+            value={currentDriftKn != null ? fmt(currentDriftKn, 1) : "--"}
+            unit="kn"
+            size="md"
+            color="#22d3ee"
+            subValue={currentSetDeg != null ? `Set ${Math.round(((currentSetDeg % 360) + 360) % 360)}°` : undefined}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+          <DataTile
+            label="GPS Fix"
+            value={nav.gpsFixType ?? "--"}
+            size="md"
+            color={nav.gpsFixType === "3D" ? "#22d3ee" : nav.gpsFixType === "2D" ? "#f59e0b" : "rgba(255,255,255,0.3)"}
+            subValue={nav.gpsSatellitesUsed != null ? `${nav.gpsSatellitesUsed} sats used` : undefined}
+          />
+          <DataTile
+            label="Sats In View"
+            value={nav.gpsSatellitesInView != null ? nav.gpsSatellitesInView.toString() : "--"}
+            size="md"
+            color="#22d3ee"
+          />
+          <DataTile
+            label="HDOP"
+            value={nav.gpsHdop != null ? fmt(nav.gpsHdop, 1) : "--"}
+            size="md"
+            color={nav.gpsHdop != null && nav.gpsHdop < 2 ? "#22d3ee" : "#f59e0b"}
+            subValue={nav.gpsPdop != null ? `PDOP ${nav.gpsPdop.toFixed(1)}` : undefined}
+          />
+          <DataTile
+            label="UTC Time"
+            value={nav.gpsTimeUTC ? nav.gpsTimeUTC.substring(11, 19) : "--"}
+            size="md"
+            color="#22d3ee"
+            subValue={nav.gpsTimeUTC ? nav.gpsTimeUTC.substring(0, 10) : undefined}
           />
         </div>
       </div>
