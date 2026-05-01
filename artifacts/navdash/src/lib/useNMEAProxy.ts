@@ -8,13 +8,35 @@ interface NMEAProxyMsg {
   sentence?: string;
 }
 
+export interface ParseStats {
+  total: number;
+  recognised: number;
+  withData: number;
+  badChecksum: number;
+  byType: Record<string, { count: number; parsed: number }>;
+}
+
+export interface NMEALogEntry {
+  sentence: string;
+  type: string;
+  status: "data" | "parsed-empty" | "unknown" | "bad-checksum";
+}
+
+const KNOWN_SENTENCES = new Set([
+  "RMC", "GGA", "GLL", "VTG", "HDG", "HDM", "HDT", "MWV", "MWD",
+  "VHW", "DBT", "DBS", "DBK", "DPT", "MTW", "VLW", "VDM", "VDO",
+]);
+
 export function useNMEAProxy(config: SignalKConfig) {
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [nav, setNav] = useState<NavigationData>({});
   const [aisTargets, setAISTargets] = useState<Map<string, AISTarget>>(new Map());
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [nmeaLog, setNmeaLog] = useState<string[]>([]);
+  const [nmeaLog, setNmeaLog] = useState<NMEALogEntry[]>([]);
+  const [parseStats, setParseStats] = useState<ParseStats>({
+    total: 0, recognised: 0, withData: 0, badChecksum: 0, byType: {},
+  });
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -66,12 +88,47 @@ export function useNMEAProxy(config: SignalKConfig) {
             setError(msg.message ?? "Connection error");
           } else if (msg.type === "nmea" && msg.sentence) {
             const sentence = msg.sentence;
-            if (!nmeaChecksum(sentence)) return;
-
             setLastUpdate(new Date());
-            setNmeaLog((prev) => [sentence, ...prev].slice(0, 200));
 
-            const result = parseNMEASentence(sentence);
+            const tagMatch = sentence.match(/^[!$]([A-Z0-9]+)/);
+            const tag = tagMatch?.[1] ?? "";
+            const sentenceType = tag.length >= 5 ? tag.substring(tag.length - 3) : tag;
+            const checksumOk = nmeaChecksum(sentence);
+            const result = checksumOk ? parseNMEASentence(sentence) : null;
+
+            const hasNav = !!(result?.nav && Object.keys(result.nav).length > 0);
+            const hasAIS = !!result?.ais;
+            const hasData = hasNav || hasAIS;
+            const isKnown = KNOWN_SENTENCES.has(sentenceType);
+
+            const entryStatus: NMEALogEntry["status"] = !checksumOk
+              ? "bad-checksum"
+              : hasData
+              ? "data"
+              : isKnown
+              ? "parsed-empty"
+              : "unknown";
+
+            setNmeaLog((prev) =>
+              [{ sentence, type: sentenceType, status: entryStatus }, ...prev].slice(0, 200)
+            );
+
+            setParseStats((prev) => {
+              const byType = { ...prev.byType };
+              const cur = byType[sentenceType] ?? { count: 0, parsed: 0 };
+              byType[sentenceType] = {
+                count: cur.count + 1,
+                parsed: cur.parsed + (hasData ? 1 : 0),
+              };
+              return {
+                total: prev.total + 1,
+                recognised: prev.recognised + (isKnown ? 1 : 0),
+                withData: prev.withData + (hasData ? 1 : 0),
+                badChecksum: prev.badChecksum + (checksumOk ? 0 : 1),
+                byType,
+              };
+            });
+
             if (!result) return;
 
             if (result.nav && Object.keys(result.nav).length > 0) {
@@ -126,5 +183,5 @@ export function useNMEAProxy(config: SignalKConfig) {
     return () => { mountedRef.current = false; disconnect(); };
   }, []);
 
-  return { status, nav, setNav, aisTargets, setAISTargets, rawState: {}, setRawState: () => {}, lastUpdate, setLastUpdate, error, setError, setStatus, connect, disconnect, nmeaLog, sendSentence };
+  return { status, nav, setNav, aisTargets, setAISTargets, rawState: {}, setRawState: () => {}, lastUpdate, setLastUpdate, error, setError, setStatus, connect, disconnect, nmeaLog, sendSentence, parseStats };
 }

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import { useSignalK } from "./signalk";
-import { useNMEAProxy } from "./useNMEAProxy";
+import { useNMEAProxy, NMEALogEntry, ParseStats } from "./useNMEAProxy";
 import { loadConfig, saveConfig, SignalKConfig, ConnectionStatus, NavigationData, AISTarget, SignalKState } from "./signalk";
 
 export interface SKContextValue {
@@ -14,7 +14,8 @@ export interface SKContextValue {
   error: string | null;
   connect: (cfg: SignalKConfig) => void;
   disconnect: () => void;
-  nmeaLog?: string[];
+  nmeaLog?: NMEALogEntry[];
+  parseStats?: ParseStats;
   putSK: (path: string, value: unknown) => Promise<void>;
   sendNMEA: (sentence: string) => void;
 }
@@ -83,6 +84,7 @@ function NMEAModeProvider({ config, updateConfig, children }: {
       lastUpdate: proxy.lastUpdate,
       error: proxy.error,
       nmeaLog: proxy.nmeaLog,
+      parseStats: proxy.parseStats,
       putSK: async () => { throw new Error("Signal K PUT not available in NMEA TCP mode"); },
       sendNMEA: proxy.sendSentence,
     }}>

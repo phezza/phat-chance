@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { useWakeLock } from "@/lib/useWakeLock";
 
 export function Settings() {
-  const { config, updateConfig, status, connect, disconnect, nav, aisTargets, rawState, nmeaLog } = useSK();
+  const { config, updateConfig, status, connect, disconnect, nav, aisTargets, rawState, nmeaLog, parseStats } = useSK();
   const wakeLock = useWakeLock();
   const [form, setForm] = useState<SignalKConfig>({ ...config });
   const [saved, setSaved] = useState(false);
@@ -246,10 +246,66 @@ export function Settings() {
         <div className="bg-white/5 border border-white/10 rounded-xl p-4">
           <div className="text-white/40 text-xs uppercase tracking-widest mb-2">{config.mode === "nmea-tcp" ? "NMEA Sentences" : "Data Paths"}</div>
           <div className="text-3xl font-bold font-mono text-cyan-400">
-            {config.mode === "nmea-tcp" ? (nmeaLog?.length ?? 0) : rawEntries.length}
+            {config.mode === "nmea-tcp" ? (parseStats?.total ?? 0) : rawEntries.length}
           </div>
         </div>
       </div>
+
+      {config.mode === "nmea-tcp" && parseStats && parseStats.total > 0 && (
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2">
+            <Radio className="w-4 h-4 text-cyan-400" />
+            <h3 className="text-white/60 text-sm font-medium">Parser Diagnostics</h3>
+          </div>
+          <div className="grid grid-cols-4 gap-px bg-white/5">
+            <div className="bg-[#0a1320] p-3">
+              <div className="text-white/40 text-[10px] uppercase tracking-widest">Received</div>
+              <div className="text-2xl font-mono font-bold text-white">{parseStats.total}</div>
+            </div>
+            <div className="bg-[#0a1320] p-3">
+              <div className="text-white/40 text-[10px] uppercase tracking-widest">Parsed (data)</div>
+              <div className="text-2xl font-mono font-bold text-emerald-400">{parseStats.withData}</div>
+            </div>
+            <div className="bg-[#0a1320] p-3">
+              <div className="text-white/40 text-[10px] uppercase tracking-widest">Unknown type</div>
+              <div className="text-2xl font-mono font-bold text-amber-400">{parseStats.total - parseStats.recognised}</div>
+            </div>
+            <div className="bg-[#0a1320] p-3">
+              <div className="text-white/40 text-[10px] uppercase tracking-widest">Bad checksum</div>
+              <div className="text-2xl font-mono font-bold text-red-400">{parseStats.badChecksum}</div>
+            </div>
+          </div>
+          <div className="p-3 border-t border-white/10 bg-black/20">
+            <div className="text-white/40 text-[10px] uppercase tracking-widest mb-2">Sentence types received</div>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(parseStats.byType)
+                .sort((a, b) => b[1].count - a[1].count)
+                .map(([type, s]) => {
+                  const known = s.parsed > 0;
+                  return (
+                    <span
+                      key={type}
+                      className={cn(
+                        "px-2 py-1 rounded text-xs font-mono border",
+                        known
+                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                          : "bg-white/5 border-white/10 text-white/40"
+                      )}
+                      title={`${s.parsed}/${s.count} produced data`}
+                    >
+                      {type} <span className="opacity-60">×{s.count}</span>
+                    </span>
+                  );
+                })}
+            </div>
+            <div className="text-white/30 text-[10px] mt-3 leading-relaxed">
+              <span className="text-emerald-400">Green</span> = parsed and produced data ·
+              <span className="text-white/40"> Gray</span> = received but not handled by the parser.
+              If a sentence type you expect is gray, paste an example to add support.
+            </div>
+          </div>
+        </div>
+      )}
 
       {config.mode === "nmea-tcp" && nmeaLog && nmeaLog.length > 0 && (
         <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
@@ -257,10 +313,22 @@ export function Settings() {
             <Radio className="w-4 h-4 text-violet-400" />
             <h3 className="text-white/60 text-sm font-medium">Live NMEA Stream</h3>
           </div>
-          <div className="max-h-64 overflow-y-auto p-3 font-mono text-xs text-green-400/70 bg-black/30 space-y-0.5">
-            {nmeaLog.map((line, i) => (
-              <div key={i} className="leading-5 hover:text-green-300 transition-colors">{line}</div>
-            ))}
+          <div className="max-h-64 overflow-y-auto p-3 font-mono text-xs bg-black/30 space-y-0.5">
+            {nmeaLog.map((entry, i) => {
+              const colorClass =
+                entry.status === "data"
+                  ? "text-emerald-400"
+                  : entry.status === "parsed-empty"
+                  ? "text-cyan-400/60"
+                  : entry.status === "bad-checksum"
+                  ? "text-red-400/70"
+                  : "text-white/30";
+              return (
+                <div key={i} className={cn("leading-5", colorClass)} title={entry.status}>
+                  {entry.sentence}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

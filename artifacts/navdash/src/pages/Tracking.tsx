@@ -129,8 +129,8 @@ type TrackState = "idle" | "armed" | "recording";
 
 export function Tracking() {
   const { nav } = useSK();
-  const lat = nav.latitude;
-  const lon = nav.longitude;
+  const lat = nav.position?.latitude;
+  const lon = nav.position?.longitude;
   const sog = nav.speedOverGround;
   const hdg = nav.headingTrue ?? nav.headingMagnetic;
 
