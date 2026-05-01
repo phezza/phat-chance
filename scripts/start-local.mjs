@@ -63,6 +63,19 @@ async function main() {
     process.exit(1);
   }
 
+  // Stamp the service worker with a unique build ID so PWA clients
+  // pick up new bundles instead of serving stale cached ones.
+  const swPath = path.join(navdashDist, "sw.js");
+  if (fs.existsSync(swPath)) {
+    const buildId = String(Date.now());
+    const original = fs.readFileSync(swPath, "utf8");
+    const stamped = original.replace(/__BUILD_ID__/g, buildId);
+    if (stamped !== original) {
+      fs.writeFileSync(swPath, stamped);
+      console.log(`[sw] Stamped service worker with build ID ${buildId}`);
+    }
+  }
+
   console.log(`\n[3/3] Starting Phat Chance on port ${PORT}...`);
   const ips = getLanIPs();
   console.log("\n========================================================");

@@ -1,6 +1,7 @@
 // Phat Chance service worker — minimal app-shell cache for offline launch.
-// Bumping CACHE_VERSION invalidates old caches.
-const CACHE_VERSION = "phat-chance-v1";
+// CACHE_VERSION is rewritten at build time by scripts/start-local.mjs to force
+// cache invalidation on every new build. Manual edits to the version line are fine.
+const CACHE_VERSION = "phat-chance-__BUILD_ID__";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -25,7 +26,11 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k))),
       )
-      .then(() => self.clients.claim()),
+      .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({ type: "window" }))
+      .then((clients) => {
+        for (const c of clients) c.postMessage({ type: "SW_UPDATED", version: CACHE_VERSION });
+      }),
   );
 });
 
