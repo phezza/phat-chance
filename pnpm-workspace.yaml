@@ -97,10 +97,12 @@ overrides:
   "esbuild>@esbuild/win32-x64": "-"
   "esbuild>@esbuild/aix-ppc64": '-'
   "esbuild>@esbuild/android-arm": '-'
-  "esbuild>@esbuild/android-arm64": '-'
+  # NOTE: @esbuild/android-arm64 is intentionally NOT excluded — needed by the
+  # phat-chance navdash app running locally on an Android tablet via Termux.
   "esbuild>@esbuild/android-x64": '-'
   "esbuild>@esbuild/openharmony-arm64": '-'
-  "lightningcss>lightningcss-android-arm64": "-"
+  # NOTE: lightningcss-android-arm64 is intentionally NOT excluded — needed by
+  # the phat-chance navdash app running locally on an Android tablet via Termux.
   "lightningcss>lightningcss-darwin-arm64": "-"
   "lightningcss>lightningcss-darwin-x64": "-"
   "lightningcss>lightningcss-freebsd-x64": "-"
@@ -110,7 +112,8 @@ overrides:
   "lightningcss>lightningcss-linux-x64-musl": "-"
   "lightningcss>lightningcss-win32-arm64-msvc": "-"
   "lightningcss>lightningcss-win32-x64-msvc": "-"
-  "@tailwindcss/oxide>@tailwindcss/oxide-android-arm64": "-"
+  # NOTE: @tailwindcss/oxide-android-arm64 is intentionally NOT excluded —
+  # needed by the phat-chance navdash app running locally on an Android tablet.
   "@tailwindcss/oxide>@tailwindcss/oxide-darwin-arm64": "-"
   "@tailwindcss/oxide>@tailwindcss/oxide-darwin-x64": "-"
   "@tailwindcss/oxide>@tailwindcss/oxide-freebsd-x64": "-"
@@ -121,7 +124,8 @@ overrides:
   "@tailwindcss/oxide>@tailwindcss/oxide-win32-x64-msvc": "-"
   "@tailwindcss/oxide>@tailwindcss/oxide-linux-x64-musl": "-"
   "rollup>@rollup/rollup-android-arm-eabi": "-"
-  "rollup>@rollup/rollup-android-arm64": "-"
+  # NOTE: @rollup/rollup-android-arm64 is intentionally NOT excluded — needed
+  # by the phat-chance navdash app running locally on an Android tablet.
   "rollup>@rollup/rollup-darwin-arm64": "-"
   "rollup>@rollup/rollup-darwin-x64": "-"
   "rollup>@rollup/rollup-freebsd-arm64": "-"

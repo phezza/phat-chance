@@ -93,10 +93,8 @@ overrides:
   esbuild>@esbuild/win32-x64: '-'
   esbuild>@esbuild/aix-ppc64: '-'
   esbuild>@esbuild/android-arm: '-'
-  esbuild>@esbuild/android-arm64: '-'
   esbuild>@esbuild/android-x64: '-'
   esbuild>@esbuild/openharmony-arm64: '-'
-  lightningcss>lightningcss-android-arm64: '-'
   lightningcss>lightningcss-darwin-arm64: '-'
   lightningcss>lightningcss-darwin-x64: '-'
   lightningcss>lightningcss-freebsd-x64: '-'
@@ -106,7 +104,6 @@ overrides:
   lightningcss>lightningcss-linux-x64-musl: '-'
   lightningcss>lightningcss-win32-arm64-msvc: '-'
   lightningcss>lightningcss-win32-x64-msvc: '-'
-  '@tailwindcss/oxide>@tailwindcss/oxide-android-arm64': '-'
   '@tailwindcss/oxide>@tailwindcss/oxide-darwin-arm64': '-'
   '@tailwindcss/oxide>@tailwindcss/oxide-darwin-x64': '-'
   '@tailwindcss/oxide>@tailwindcss/oxide-freebsd-x64': '-'
@@ -117,7 +114,6 @@ overrides:
   '@tailwindcss/oxide>@tailwindcss/oxide-win32-x64-msvc': '-'
   '@tailwindcss/oxide>@tailwindcss/oxide-linux-x64-musl': '-'
   rollup>@rollup/rollup-android-arm-eabi: '-'
-  rollup>@rollup/rollup-android-arm64: '-'
   rollup>@rollup/rollup-darwin-arm64: '-'
   rollup>@rollup/rollup-darwin-x64: '-'
   rollup>@rollup/rollup-freebsd-arm64: '-'
@@ -4362,6 +4358,7 @@ snapshots:
 
   '@tailwindcss/oxide@4.2.1':
     optionalDependencies:
+      '@tailwindcss/oxide-android-arm64': 4.2.1
       '@tailwindcss/oxide-linux-x64-gnu': 4.2.1
       '@tailwindcss/oxide-wasm32-wasi': 4.2.1
 
@@ -4815,6 +4812,7 @@ snapshots:
 
   esbuild@0.27.3:
     optionalDependencies:
+      '@esbuild/android-arm64': 0.27.3
       '@esbuild/linux-x64': 0.27.3
 
   escalade@3.2.0: {}
@@ -5092,6 +5090,7 @@ snapshots:
     dependencies:
       detect-libc: 2.1.2
     optionalDependencies:
+      lightningcss-android-arm64: 1.31.1
       lightningcss-linux-x64-gnu: 1.31.1
 
   linkify-it@5.0.0:
@@ -5532,6 +5531,7 @@ snapshots:
     dependencies:
       '@types/estree': 1.0.8
     optionalDependencies:
+      '@rollup/rollup-android-arm64': 4.59.0
       '@rollup/rollup-linux-x64-gnu': 4.59.0
       fsevents: 2.3.3
 
