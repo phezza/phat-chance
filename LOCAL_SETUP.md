@@ -146,13 +146,16 @@ If it says "Error" or "Connecting" forever:
 
 ## Updating the dashboard
 
+One command does it all — pulls the latest code, reinstalls any new dependencies, and stops the running server so the Termux:Boot script picks up the new build on next launch:
+
 ```bash
 cd ~/phat-chance
-git pull
-pnpm install
+pnpm run update
 ```
 
-Then either reboot the tablet or kill the running server (`pkill -f start-local`) — the boot script will restart it automatically next time.
+Then either reboot the tablet, or just run `pnpm run start:local` again to start it back up immediately.
+
+(If you'd rather do it the manual way: `git pull && pnpm install && pkill -f start-local`.)
 
 ---
 
