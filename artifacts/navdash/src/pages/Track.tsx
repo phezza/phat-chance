@@ -45,12 +45,15 @@ function MapRecenter({ lat, lon, follow }: { lat: number; lon: number; follow: b
   const map = useMap();
   const didFitOnce = useRef(false);
   useEffect(() => {
+    // Invalidate size in case the flex parent had 0 height at mount.
+    const t = setTimeout(() => map.invalidateSize(), 0);
     if (!didFitOnce.current) {
       map.setView([lat, lon], 13);
       didFitOnce.current = true;
     } else if (follow) {
       map.panTo([lat, lon]);
     }
+    return () => clearTimeout(t);
   }, [lat, lon, follow, map]);
   return null;
 }
@@ -195,7 +198,7 @@ export function Track() {
 
       {latest && (
         <>
-          <div className="flex-1 relative" style={{ minHeight: "50vh" }}>
+          <div className="relative" style={{ height: "calc(100vh - 220px)", minHeight: "300px", width: "100%" }}>
             <MapContainer
               center={[latest.latitude, latest.longitude]}
               zoom={13}
