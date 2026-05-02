@@ -96,11 +96,12 @@ export function Track() {
         const url = `${base}api/track/${encodeURIComponent(vesselId!)}/history?sinceMinutes=${HISTORY_MINUTES}`;
         const res = await fetch(url);
         if (!res.ok) {
+          const text = await res.text().catch(() => "");
           if (res.status === 404) {
             setPoints([]);
             setError(null);
           } else {
-            setError(`Server error: ${res.status}`);
+            setError(`Failed to fetch track: HTTP ${res.status}${text ? ` - ${text.slice(0, 200)}` : ""}`);
           }
           return;
         }
