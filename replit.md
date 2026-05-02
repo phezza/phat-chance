@@ -22,11 +22,18 @@ Located at `artifacts/navdash/`. Frontend-only React app connecting to Signal K.
 
 **Pages:**
 - `/` — Dashboard: Compass, speed gauges, wind rose, autopilot status, position
+- `/charts` — Charts: Boat-centred map with toggleable layers (OpenSeaMap seamarks, RainViewer precipitation radar, AIS overlay, persisted trail) and a live instrument HUD overlay
 - `/navigation` — Navigation: Heading, COG, leeway, depth, position
 - `/wind` — Wind: Apparent/true speed+angle, Beaufort scale
 - `/instruments` — Instruments: All gauges in a grid view
-- `/ais` — AIS: Live AIS targets list with detail panel
-- `/settings` — Settings: Signal K host/port config, raw data viewer
+- `/ais` — AIS: Split list + live map with AIS targets, boat marker, detail overlay
+- `/tracking` — Tracking: Manual trip recorder (start/stop/clear) with stats
+- `/track/:vesselId` — Public read-only tracker (consumes deployed api-server `/api/track/...`)
+- `/autopilot` — Autopilot: heading/state controls (Signal K mode only)
+- `/settings` — Settings: Signal K host/port config, raw data viewer, cloud uplink config
+
+**Shared map helpers:**
+- `src/lib/mapIcons.ts` — `makeBoatIcon`, `makeAISIcon`, `getAISShipColor`
 
 **Key files:**
 - `src/lib/signalk.ts` — Signal K WebSocket client, data types, unit conversions

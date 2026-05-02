@@ -14,6 +14,7 @@ import { Instruments } from "@/pages/Instruments";
 import { Settings } from "@/pages/Settings";
 import { Tracking } from "@/pages/Tracking";
 import { Track } from "@/pages/Track";
+import { Charts } from "@/pages/Charts";
 import { Autopilot } from "@/pages/Autopilot";
 import { cn } from "@/lib/utils";
 import {
@@ -30,12 +31,14 @@ import {
   ChevronRight,
   Menu,
   X,
+  Map as MapIcon,
 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/charts", label: "Charts", icon: MapIcon },
   { path: "/navigation", label: "Navigation", icon: Compass },
   { path: "/wind", label: "Wind", icon: WindIcon },
   { path: "/instruments", label: "Instruments", icon: Gauge },
@@ -230,6 +233,7 @@ function AppShell() {
         <main className="flex-1 overflow-y-auto min-h-0">
           <Switch>
             <Route path="/" component={Dashboard} />
+            <Route path="/charts" component={Charts} />
             <Route path="/navigation" component={Navigation} />
             <Route path="/wind" component={Wind} />
             <Route path="/instruments" component={Instruments} />
