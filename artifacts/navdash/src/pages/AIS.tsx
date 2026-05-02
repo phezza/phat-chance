@@ -4,9 +4,10 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useSK } from "@/lib/SignalKContext";
 import { mpsToKnots, radToDeg, getAISShipTypeName, getNavStatus } from "@/lib/signalk";
-import { Ship, Radio, MapPin, X } from "lucide-react";
+import { Ship, Radio, MapPin, X, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { makeBoatIcon, makeAISIcon, getAISShipColor } from "@/lib/mapIcons";
+import { tryComputeCPAForTarget, classifyThreat, fmtNm, fmtTcpa } from "@/lib/cpa";
 import { cn } from "@/lib/utils";
 
 function fmt(val: number | undefined, decimals = 1): string {
@@ -62,29 +63,56 @@ export function AIS() {
   const [filter, setFilter] = useState("");
   const [focusKey, setFocusKey] = useState(0);
 
-  const targets = useMemo(
-    () =>
-      Array.from(aisTargets.values())
-        .filter((t) => {
-          if (!filter) return true;
-          const q = filter.toLowerCase();
-          return (
-            t.mmsi.includes(q) ||
-            t.name?.toLowerCase().includes(q) ||
-            t.callsign?.toLowerCase().includes(q) ||
-            getAISShipTypeName(t.shipType).toLowerCase().includes(q)
-          );
-        })
-        .sort((a, b) => {
-          if (a.timestamp && b.timestamp) {
-            return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-          }
-          return 0;
-        }),
-    [aisTargets, filter]
-  );
+  // Compute CPA for every target up-front so we can sort/badge by threat
+  const enriched = useMemo(() => {
+    return Array.from(aisTargets.values()).map((t) => {
+      const cpa = tryComputeCPAForTarget(nav, t);
+      const threat = cpa ? classifyThreat(cpa) : null;
+      return { target: t, cpa, threat };
+    });
+  }, [aisTargets, nav]);
+
+  const threatRank: Record<string, number> = {
+    danger: 4,
+    warning: 3,
+    caution: 2,
+    info: 1,
+    none: 0,
+  };
+
+  const targets = useMemo(() => {
+    return enriched
+      .filter(({ target: t }) => {
+        if (!filter) return true;
+        const q = filter.toLowerCase();
+        return (
+          t.mmsi.includes(q) ||
+          t.name?.toLowerCase().includes(q) ||
+          t.callsign?.toLowerCase().includes(q) ||
+          getAISShipTypeName(t.shipType).toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) => {
+        const ra = a.threat ? threatRank[a.threat.level] : 0;
+        const rb = b.threat ? threatRank[b.threat.level] : 0;
+        if (ra !== rb) return rb - ra;
+        if (a.target.timestamp && b.target.timestamp) {
+          return new Date(b.target.timestamp).getTime() - new Date(a.target.timestamp).getTime();
+        }
+        return 0;
+      });
+  }, [enriched, filter]);
 
   const selectedTarget = selected ? aisTargets.get(selected) : null;
+  const selectedCPA = useMemo(
+    () => (selectedTarget ? tryComputeCPAForTarget(nav, selectedTarget) : null),
+    [selectedTarget, nav],
+  );
+  const selectedThreat = selectedCPA ? classifyThreat(selectedCPA) : null;
+
+  const dangerCount = enriched.filter(
+    (t) => t.threat?.level === "danger" || t.threat?.level === "warning",
+  ).length;
 
   // Compute initial bounds covering boat + AIS targets
   const positionedTargets = useMemo(
@@ -126,9 +154,16 @@ export function AIS() {
   return (
     <div className="flex flex-col h-full" data-testid="ais-page">
       <PageHeader title="AIS Targets" icon={Radio} badge={
-        <span className="px-2 py-0.5 rounded-full text-xs font-mono bg-cyan-500/15 text-cyan-300 border border-cyan-500/25">
-          {aisTargets.size} total · {positionedTargets.length} on map
-        </span>
+        <>
+          <span className="px-2 py-0.5 rounded-full text-xs font-mono bg-cyan-500/15 text-cyan-300 border border-cyan-500/25">
+            {aisTargets.size} total · {positionedTargets.length} on map
+          </span>
+          {dangerCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-mono bg-red-500/15 text-red-300 border border-red-500/30 flex items-center gap-1 animate-pulse">
+              <AlertTriangle className="w-3 h-3" /> {dangerCount} CPA alert{dangerCount > 1 ? "s" : ""}
+            </span>
+          )}
+        </>
       } />
 
       <div className="flex-shrink-0 px-4 py-2.5 border-b border-white/8 bg-black/20">
@@ -153,9 +188,10 @@ export function AIS() {
             </div>
           ) : (
             <div className="divide-y divide-white/5">
-              {targets.map((target) => {
+              {targets.map(({ target, threat, cpa }) => {
                 const color = getAISShipColor(target.shipType);
                 const isSelected = selected === target.mmsi;
+                const showThreat = threat && threat.level !== "none" && threat.level !== "info";
                 return (
                   <button
                     key={target.mmsi}
@@ -164,6 +200,11 @@ export function AIS() {
                       "w-full text-left px-4 py-3 hover:bg-white/5 transition-colors",
                       isSelected && "bg-cyan-500/10"
                     )}
+                    style={
+                      showThreat && threat
+                        ? { borderLeft: `3px solid ${threat.color}`, paddingLeft: "13px" }
+                        : undefined
+                    }
                     data-testid={`ais-target-${target.mmsi}`}
                   >
                     <div className="flex items-start gap-3">
@@ -198,6 +239,19 @@ export function AIS() {
                             <span className="text-amber-400/70">no position</span>
                           )}
                         </div>
+                        {showThreat && threat && cpa && (
+                          <div
+                            className="mt-1 inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded"
+                            style={{
+                              background: `${threat.color}1f`,
+                              color: threat.color,
+                              border: `1px solid ${threat.color}40`,
+                            }}
+                          >
+                            <AlertTriangle className="w-3 h-3" />
+                            CPA {fmtNm(cpa.cpaMeters)} · {fmtTcpa(cpa.tcpaSeconds)}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </button>
@@ -229,23 +283,35 @@ export function AIS() {
             <FitInitial bounds={initialBounds} />
             <FocusOnTarget key={focusKey} target={focusPos} />
 
-            {positionedTargets.map((t) => {
-              const color = getAISShipColor(t.shipType);
-              const heading = t.heading != null ? ((radToDeg(t.heading) % 360) + 360) % 360 : undefined;
-              const cog = t.cog != null ? ((radToDeg(t.cog) % 360) + 360) % 360 : undefined;
-              const isSel = selected === t.mmsi;
-              const label = t.name ?? `MMSI ${t.mmsi}`;
-              return (
-                <Marker
-                  key={t.mmsi}
-                  position={[t.position!.latitude, t.position!.longitude]}
-                  icon={makeAISIcon({ color, headingDeg: heading, cogDeg: cog, selected: isSel, label })}
-                  eventHandlers={{
-                    click: () => setSelected(isSel ? null : t.mmsi),
-                  }}
-                />
-              );
-            })}
+            {enriched
+              .filter(({ target }) => target.position)
+              .map(({ target: t, threat }) => {
+                const color = getAISShipColor(t.shipType);
+                const heading = t.heading != null ? ((radToDeg(t.heading) % 360) + 360) % 360 : undefined;
+                const cog = t.cog != null ? ((radToDeg(t.cog) % 360) + 360) % 360 : undefined;
+                const isSel = selected === t.mmsi;
+                const label = t.name ?? `MMSI ${t.mmsi}`;
+                const threatColor = threat && threat.level !== "none" && threat.level !== "info" ? threat.color : undefined;
+                const pulse = threat?.level === "danger";
+                return (
+                  <Marker
+                    key={t.mmsi}
+                    position={[t.position!.latitude, t.position!.longitude]}
+                    icon={makeAISIcon({
+                      color,
+                      headingDeg: heading,
+                      cogDeg: cog,
+                      selected: isSel,
+                      label,
+                      threatColor,
+                      threatPulse: pulse,
+                    })}
+                    eventHandlers={{
+                      click: () => setSelected(isSel ? null : t.mmsi),
+                    }}
+                  />
+                );
+              })}
 
             {nav.position && (
               <Marker
@@ -322,22 +388,48 @@ export function AIS() {
                     <div className="font-mono text-white text-xs">
                       {selectedTarget.position.latitude.toFixed(5)}°, {selectedTarget.position.longitude.toFixed(5)}°
                     </div>
-                    {nav.position && (
+                    {selectedCPA && (
                       <div className="text-white/40 text-[11px] mt-0.5">
-                        {(() => {
-                          const dlat = (selectedTarget.position!.latitude - nav.position!.latitude) * 111.32;
-                          const dlon =
-                            (selectedTarget.position!.longitude - nav.position!.longitude) *
-                            111.32 *
-                            Math.cos((nav.position!.latitude * Math.PI) / 180);
-                          const dist = Math.sqrt(dlat * dlat + dlon * dlon) / 1.852;
-                          const bearing =
-                            (Math.atan2(dlon, dlat) * 180) / Math.PI;
-                          const brg = ((bearing % 360) + 360) % 360;
-                          return `~${dist.toFixed(2)} NM · ${Math.round(brg)}° from boat`;
-                        })()}
+                        {fmtNm(selectedCPA.distanceMeters)} · {Math.round(selectedCPA.bearingDeg)}° from boat
                       </div>
                     )}
+                  </div>
+                )}
+
+                {selectedCPA && selectedThreat && (
+                  <div
+                    className="col-span-2 rounded-lg p-2 border"
+                    style={{
+                      background: selectedThreat.level === "none" ? "rgba(255,255,255,0.04)" : `${selectedThreat.color}15`,
+                      borderColor:
+                        selectedThreat.level === "none"
+                          ? "rgba(255,255,255,0.08)"
+                          : `${selectedThreat.color}40`,
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="text-white/45 uppercase tracking-widest text-[10px] flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" /> Collision Risk (CPA)
+                      </div>
+                      {selectedThreat.label && (
+                        <span
+                          className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
+                          style={{ color: selectedThreat.color, background: `${selectedThreat.color}22` }}
+                        >
+                          {selectedThreat.label}
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mt-1.5">
+                      <div>
+                        <div className="text-white/35 text-[10px] uppercase tracking-widest">CPA</div>
+                        <div className="text-white font-mono font-semibold">{fmtNm(selectedCPA.cpaMeters)}</div>
+                      </div>
+                      <div>
+                        <div className="text-white/35 text-[10px] uppercase tracking-widest">TCPA</div>
+                        <div className="text-white font-mono font-semibold">{fmtTcpa(selectedCPA.tcpaSeconds)}</div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
