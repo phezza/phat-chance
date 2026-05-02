@@ -1,0 +1,63 @@
+~/phat-chance $ pnpm install                                                                       pnpm --filter @workspace/navdash run dev
+Scope: all 9 workspace projects
+Lockfile is up to date, resolution step is skipped
+Already up to date
+. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*)…
+└─ Done in 87ms
+Done in 3.4s using pnpm v10.33.2
+
+> @workspace/navdash@0.0.0 dev /data/data/com.termux/files/home/phat-chance/artifacts/navdash
+> vite --config vite.config.ts --host 0.0.0.0
+
+failed to load config from /data/data/com.termux/files/home/phat-chance/artifacts/navdash/vite.config.ts
+error when starting dev server:
+Error: PORT environment variable is required but was not provided.
+    at file:///data/data/com.termux/files/home/phat-chance/artifacts/navdash/node_modules/.vite-temp/vite.config.ts.timestamp-1777701739832-bfa12dbb5f1a1.mjs:10:9
+    at ModuleJob.run (node:internal/modules/esm/module_job:430:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:639:26)
+    at async loadConfigFromBundledFile (file:///data/data/com.termux/files/home/phat-chance/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:35909:12)
+    at async bundleAndLoadConfigFile (file:///data/data/com.termux/files/home/phat-chance/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:35797:17)
+    at async loadConfigFromFile (file:///data/data/com.termux/files/home/phat-chance/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:35764:42)                                                            at async resolveConfig (file:///data/data/com.termux/files/home/phat-chance/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:35413:22)
+    at async _createServer (file:///data/data/com.termux/files/home/phat-chance/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:25362:67)                                                                 at async CAC.<anonymous> (file:///data/data/com.termux/files/home/phat-chance/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/cli.js:572:18)
+/data/data/com.termux/files/home/phat-chance/artifacts/navdash:                                     ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/navdash@0.0.0 dev: `vite --config vite.config.ts --host 0.0.0.0`                                                                                       Exit status 1
+~/phat-chance $ git checkout -- pnpm-lock.yaml && git pull                                         Already up to date.
+~/phat-chance $ pnpm --filter @workspace/api-server run dev
+
+> @workspace/api-server@0.0.0 dev /data/data/com.termux/files/home/phat-chance/artifacts/api-server
+> export NODE_ENV=development && pnpm run build && pnpm run start
+
+
+> @workspace/api-server@0.0.0 build /data/data/com.termux/files/home/phat-chance/artifacts/api-server
+> node ./build.mjs
+
+
+  dist/index.mjs                       2.3mb ⚠️
+  dist/pino-worker.mjs               153.4kb
+  dist/pino-file.mjs                 142.1kb
+  dist/pino-pretty.mjs               114.6kb
+  dist/thread-stream-worker.mjs        7.3kb
+  dist/index.mjs.map                   3.9mb
+  dist/pino-worker.mjs.map           256.9kb
+  dist/pino-file.mjs.map             229.1kb
+  dist/pino-pretty.mjs.map           203.9kb
+  dist/thread-stream-worker.mjs.map   12.0kb
+
+⚡ Done in 547ms
+
+> @workspace/api-server@0.0.0 start /data/data/com.termux/files/home/phat-chance/artifacts/api-server
+> node --enable-source-maps ./dist/index.mjs
+                                                                                                   [16:03:36.186] INFO (22947): DATABASE_URL not set; tracking routes disabled (boat-side mode)
+/data/data/com.termux/files/home/phat-chance/artifacts/api-server/src/index.ts:9
+  throw new Error(
+        ^
+
+Error: PORT environment variable is required but was not provided.
+    at <anonymous> (/data/data/com.termux/files/home/phat-chance/artifacts/api-server/src/index.ts:9:9)
+    at ModuleJob.run (node:internal/modules/esm/module_job:430:25)                                     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:639:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v25.8.2
+ ELIFECYCLE  Command failed with exit code 1.
+/data/data/com.termux/files/home/phat-chance/artifacts/api-server:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 dev: `export NODE_ENV=development && pnpm run build && pnpm run start`
+Exit status 1
