@@ -129,36 +129,59 @@ function LayerToggle({
   );
 }
 
+interface WindReading {
+  speedKn: number;
+  /** Wind angle relative to bow in degrees (clockwise, 0=bow, 90=stbd). May be null. */
+  angleRelDeg: number | null;
+  isTrue: boolean;
+}
+
 function WindCompass({
-  twsKn,
-  twaDeg,
+  reading,
   hdgDeg,
 }: {
-  twsKn: number;
-  twaDeg: number;
+  reading: WindReading;
   hdgDeg?: number;
 }) {
-  // TWA is wind angle relative to bow. Convert to absolute true bearing.
-  const absoluteWindFrom = ((hdgDeg ?? 0) + twaDeg + 360) % 360;
+  const { speedKn, angleRelDeg, isTrue } = reading;
+  const accent = isTrue ? "#34d399" : "#22d3ee";
+  const label = isTrue ? "True Wind" : "Apparent Wind";
   const size = 96;
   const r = size / 2 - 6;
   const cx = size / 2;
   const cy = size / 2;
+  // The relative angle is what we always have for an angled arrow because
+  // the boat icon is fixed pointing "up" inside the widget — so we can show
+  // wind direction relative to the bow even without GPS heading.
+  const relForArrow = angleRelDeg ?? null;
+  // Absolute compass bearing of where the wind is FROM. Only meaningful when
+  // we know the boat's heading.
+  const absoluteWindFrom =
+    angleRelDeg != null && hdgDeg != null
+      ? ((hdgDeg + angleRelDeg) % 360 + 360) % 360
+      : null;
   return (
     <div className="bg-[#070d1a]/85 backdrop-blur-md border border-white/12 rounded-2xl p-2.5 shadow-xl">
       <div className="text-[9px] uppercase tracking-widest text-white/45 font-mono mb-1 flex items-center gap-1 justify-between">
         <span className="flex items-center gap-1">
-          <WindIcon className="w-3 h-3" /> True Wind
+          <WindIcon className="w-3 h-3" /> {label}
         </span>
-        <span className="text-emerald-300 font-semibold">
-          {twsKn.toFixed(1)} kn
+        <span className="font-semibold" style={{ color: accent }}>
+          {speedKn.toFixed(1)} kn
         </span>
       </div>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle cx={cx} cy={cy} r={r} fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.18)" strokeWidth="1" />
-        {/* N marker */}
-        <text x={cx} y={10} fill="#94a3b8" fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="monospace">N</text>
-        {/* Cardinal ticks */}
+        {/* Boat silhouette pointing up — the widget is bow-up */}
+        <polygon
+          points={`${cx},${cy - 12} ${cx + 5},${cy + 8} ${cx},${cy + 4} ${cx - 5},${cy + 8}`}
+          fill="#22d3ee"
+          fillOpacity="0.5"
+          stroke="#22d3ee"
+          strokeOpacity="0.6"
+          strokeWidth="0.75"
+        />
+        {/* Cardinal ticks (port/stbd/bow/stern) */}
         {[0, 90, 180, 270].map((deg) => {
           const a = ((deg - 90) * Math.PI) / 180;
           const x1 = cx + (r - 1) * Math.cos(a);
@@ -167,37 +190,32 @@ function WindCompass({
           const y2 = cy + (r - 5) * Math.sin(a);
           return <line key={deg} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(255,255,255,0.3)" strokeWidth="1" />;
         })}
-        {/* Boat heading reference */}
-        {hdgDeg != null && (
-          <g transform={`rotate(${hdgDeg} ${cx} ${cy})`}>
+        {/* P / S labels */}
+        <text x={6} y={cy + 3} fill="#94a3b8" fontSize="8" fontWeight="600" textAnchor="middle" fontFamily="monospace">P</text>
+        <text x={size - 6} y={cy + 3} fill="#94a3b8" fontSize="8" fontWeight="600" textAnchor="middle" fontFamily="monospace">S</text>
+        {/* Wind arrow — points FROM the wind's relative bearing toward the boat */}
+        {relForArrow != null && (
+          <g transform={`rotate(${relForArrow} ${cx} ${cy})`}>
+            <line
+              x1={cx}
+              y1={cy - r + 2}
+              x2={cx}
+              y2={cy + r - 14}
+              stroke={accent}
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
             <polygon
-              points={`${cx},${cy - r + 4} ${cx - 3},${cy} ${cx + 3},${cy}`}
-              fill="#22d3ee"
-              opacity="0.6"
+              points={`${cx - 4},${cy + r - 18} ${cx + 4},${cy + r - 18} ${cx},${cy + r - 10}`}
+              fill={accent}
             />
           </g>
         )}
-        {/* Wind arrow (from direction) */}
-        <g transform={`rotate(${absoluteWindFrom} ${cx} ${cy})`}>
-          <line
-            x1={cx}
-            y1={cy - r + 2}
-            x2={cx}
-            y2={cy + r - 8}
-            stroke="#34d399"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          />
-          <polygon
-            points={`${cx - 4},${cy + r - 12} ${cx + 4},${cy + r - 12} ${cx},${cy + r - 4}`}
-            fill="#34d399"
-          />
-        </g>
-        {/* Center dot */}
-        <circle cx={cx} cy={cy} r="2.5" fill="#22d3ee" />
       </svg>
       <div className="text-center text-[10px] text-white/55 font-mono mt-0.5">
-        from {Math.round(absoluteWindFrom)}° · {Math.round(((twaDeg % 360) + 360) % 360)}° rel
+        {angleRelDeg != null
+          ? `${Math.round(((angleRelDeg % 360) + 360) % 360)}° rel${absoluteWindFrom != null ? ` · from ${Math.round(absoluteWindFrom)}°` : ""}`
+          : "no angle"}
       </div>
     </div>
   );
@@ -632,12 +650,23 @@ export function Charts() {
           </div>
         )}
 
-        {/* Wind compass widget (bottom-right) */}
-        {showWind && tws != null && twa != null && (
-          <div className="absolute bottom-3 right-3 z-[1100] pointer-events-none">
-            <WindCompass twsKn={tws} twaDeg={twa} hdgDeg={hdgDeg} />
-          </div>
-        )}
+        {/* Wind compass widget (bottom-right). Falls back to apparent wind
+            when true wind isn't published; renders even without an angle so
+            the user still sees the speed. */}
+        {showWind && (() => {
+          const reading: WindReading | null =
+            tws != null
+              ? { speedKn: tws, angleRelDeg: twa ?? null, isTrue: true }
+              : aws != null
+              ? { speedKn: aws, angleRelDeg: awa ?? null, isTrue: false }
+              : null;
+          if (!reading) return null;
+          return (
+            <div className="absolute bottom-3 right-3 z-[1100] pointer-events-none">
+              <WindCompass reading={reading} hdgDeg={hdgDeg} />
+            </div>
+          );
+        })()}
 
         {/* Route control panel (bottom-left when route layer is on) */}
         {showRoute && (
