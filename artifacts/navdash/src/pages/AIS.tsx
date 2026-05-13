@@ -274,10 +274,13 @@ export function AIS() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
               subdomains={["a", "b", "c", "d"]}
               maxZoom={19}
+              crossOrigin
             />
             <TileLayer
-              url="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"
+              url="https://t1.openseamap.org/seamark/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openseamap.org">OpenSeaMap</a>'
+              maxZoom={18}
+              crossOrigin
             />
 
             <FitInitial bounds={initialBounds} />

@@ -505,19 +505,27 @@ export function Charts() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
               subdomains={["a", "b", "c", "d"]}
               maxZoom={19}
+              crossOrigin
             />
           ) : (
+            // CARTO Voyager: colourful OSM-style tiles that, unlike raw
+            // tile.openstreetmap.org, don't get blocked when served to
+            // app-style browsers (Android PWA, WebView, etc.).
             <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              opacity={0.9}
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              subdomains={["a", "b", "c", "d"]}
+              maxZoom={19}
+              crossOrigin
             />
           )}
 
           {showSeamarks && (
             <TileLayer
-              url="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"
+              url="https://t1.openseamap.org/seamark/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openseamap.org">OpenSeaMap</a>'
+              maxZoom={18}
+              crossOrigin
             />
           )}
 
