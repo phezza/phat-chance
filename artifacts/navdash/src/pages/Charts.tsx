@@ -271,7 +271,18 @@ export function Charts() {
   const [showWind, setShowWind] = useState(true);
   const [showRoute, setShowRoute] = useState(false);
   const [routeAddMode, setRouteAddMode] = useState(false);
-  const [baseStyle, setBaseStyle] = useState<"osm" | "dark">("dark");
+  const [baseStyle, setBaseStyle] = useState<"osm" | "dark" | "ocean">(() => {
+    if (typeof window === "undefined") return "osm";
+    const saved = window.localStorage.getItem("navdash_charts_base_v1");
+    return saved === "dark" || saved === "ocean" || saved === "osm" ? saved : "osm";
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("navdash_charts_base_v1", baseStyle);
+    } catch {
+      // ignore quota errors
+    }
+  }, [baseStyle]);
   const [rainData, setRainData] = useState<RainViewerData | null>(null);
 
   const lat = nav.position?.latitude;
@@ -461,6 +472,16 @@ export function Charts() {
           >
             OSM
           </button>
+          <button
+            onClick={() => setBaseStyle("ocean")}
+            title="Nautical-chart style: depth contours, soundings, named seafloor features"
+            className={cn(
+              "px-2.5 py-1 rounded-md text-xs font-medium transition-colors",
+              baseStyle === "ocean" ? "bg-cyan-500/20 text-cyan-300" : "text-white/40 hover:text-white/70"
+            )}
+          >
+            Ocean
+          </button>
         </div>
         <LayerToggle active={showSeamarks} onClick={() => setShowSeamarks((v) => !v)} Icon={Anchor} label="Seamarks" />
         <LayerToggle active={showRain} onClick={() => setShowRain((v) => !v)} Icon={Cloud} label="Rain" />
@@ -525,6 +546,23 @@ export function Charts() {
               maxZoom={19}
               crossOrigin
             />
+          ) : baseStyle === "ocean" ? (
+            // ESRI World Ocean Base: nautical-chart style with bathymetric
+            // shading, depth contours, and named seafloor features.
+            // Layered with a thin reference overlay for place labels.
+            <>
+              <TileLayer
+                url="https://services.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}"
+                attribution='Tiles &copy; Esri — Sources: GEBCO, NOAA, CHS, OSU, UNH, CSUMB, National Geographic, DeLorme, NAVTEQ, and Esri'
+                maxZoom={13}
+                crossOrigin
+              />
+              <TileLayer
+                url="https://services.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}"
+                maxZoom={13}
+                crossOrigin
+              />
+            </>
           ) : (
             // CARTO Voyager: colourful OSM-style tiles that, unlike raw
             // tile.openstreetmap.org, don't get blocked when served to
